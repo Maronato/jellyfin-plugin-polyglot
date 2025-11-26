@@ -20,16 +20,17 @@ jobs:
           dotnet-version: '8.0.x'
 
       - name: Build Plugin
-        uses: oddstr13/jellyfin-plugin-action@v2.0.0
+        id: jprm
+        uses: oddstr13/jellyfin-plugin-repository-manager@v1.1.1
         with:
-          project_file: Jellyfin.Plugin.MultiLang/Jellyfin.Plugin.MultiLang.csproj
-          url: https://github.com/${{ github.repository }}
+          dotnet-target: "net8.0"
+          path: Jellyfin.Plugin.MultiLang
 
       - name: Upload Artifacts
         uses: actions/upload-artifact@v4
         with:
-          name: plugin-artifact
-          path: artifacts/
+          name: build-artifact
+          path: ${{ steps.jprm.outputs.artifact }}
 
   release:
     needs: build
@@ -41,7 +42,7 @@ jobs:
       - name: Download Artifacts
         uses: actions/download-artifact@v4
         with:
-          name: plugin-artifact
+          name: build-artifact
           path: dist
 
       - name: Create Release
