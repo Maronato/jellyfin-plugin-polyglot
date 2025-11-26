@@ -15,7 +15,7 @@
                 <div class="tabs-viewmenubar" style="margin-bottom: 2em;">
                     <button is="emby-button" class="emby-tab-button emby-button-tab active" data-tab="languagesTab">Languages</button>
                     <button is="emby-button" class="emby-tab-button emby-button-tab" data-tab="usersTab">Users</button>
-                    <button is="emby-button" class="emby-tab-button emby-button-tab" data-tab="ldapTab">LDAP</button>
+                    <button is="emby-button" class="emby-tab-button emby-button-tab" data-tab="ldapTab" id="ldapTabButton" style="display: none;">LDAP</button>
                     <button is="emby-button" class="emby-tab-button emby-button-tab" data-tab="settingsTab">Settings</button>
             </div>
 
@@ -66,6 +66,16 @@
                     <div class="verticalSection">
                         <h3 class="sectionTitle">LDAP Status</h3>
                         <div id="ldapStatus" class="paperList"></div>
+                    </div>
+
+                    <div class="verticalSection">
+                        <div class="checkboxContainer checkboxContainer-withDescription">
+                            <label class="emby-checkbox-label">
+                                <input id="enableLdapIntegration" type="checkbox" is="emby-checkbox" />
+                                <span>Enable LDAP Integration</span>
+                            </label>
+                            <div class="fieldDescription">Automatically assign languages based on LDAP group membership.</div>
+                        </div>
                 </div>
 
                     <div class="verticalSection">
@@ -113,14 +123,6 @@
                                     <span>Sync Audio Language</span>
                         </label>
                                 <div class="fieldDescription">Update user's preferred audio language.</div>
-                </div>
-
-                            <div class="checkboxContainer checkboxContainer-withDescription">
-                                <label class="emby-checkbox-label">
-                                    <input id="enableLdapIntegration" type="checkbox" is="emby-checkbox" />
-                                    <span>Enable LDAP Integration</span>
-                        </label>
-                                <div class="fieldDescription">Automatically assign languages based on LDAP group membership.</div>
                 </div>
 
                             <div class="inputContainer">
@@ -558,16 +560,28 @@
                 },
 
                 loadLdapStatus: function() {
+                    var self = this;
                     this.apiGet('MultiLang/LdapStatus').then(function(status) {
-                        var html = '<div class="listItem"><div class="listItemBody">';
-                        html += '<div class="listItemBodyText">LDAP Plugin: ' + (status.IsPluginInstalled ? '✓ Installed' : '✗ Not installed') + '</div>';
-                        html += '<div class="listItemBodyText secondary">';
-                        html += 'Configured: ' + (status.IsConfigured ? '✓' : '✗');
-                        html += ' • Integration: ' + (status.IsIntegrationEnabled ? '✓ Enabled' : '✗ Disabled');
-                        if (status.ServerAddress) html += ' • Server: ' + status.ServerAddress;
-                        html += '</div>';
-                        html += '</div></div>';
-                        document.getElementById('ldapStatus').innerHTML = html;
+                        // Only show LDAP tab if plugin is installed
+                        var ldapTabButton = document.getElementById('ldapTabButton');
+                        if (status.IsPluginInstalled) {
+                            ldapTabButton.style.display = '';
+                            
+                            var html = '<div class="listItem"><div class="listItemBody">';
+                            html += '<div class="listItemBodyText">LDAP Plugin: ✓ Installed</div>';
+                            html += '<div class="listItemBodyText secondary">';
+                            html += 'Configured: ' + (status.IsConfigured ? '✓' : '✗');
+                            html += ' • Integration: ' + (status.IsIntegrationEnabled ? '✓ Enabled' : '✗ Disabled');
+                            if (status.ServerAddress) html += ' • Server: ' + status.ServerAddress;
+                            html += '</div>';
+                            html += '</div></div>';
+                            document.getElementById('ldapStatus').innerHTML = html;
+                            
+                            // Load mappings only if installed
+                            self.loadLdapMappings();
+                        } else {
+                            ldapTabButton.style.display = 'none';
+                        }
                     });
                 },
 
@@ -959,7 +973,6 @@
                         self.loadAlternatives();
                         self.loadUsers();
                         self.loadLdapStatus();
-                        self.loadLdapMappings();
                         self.loadSettings();
                         
                         // Populate dropdowns
