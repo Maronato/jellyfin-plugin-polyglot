@@ -1,3 +1,4 @@
+using System.Linq;
 using System.Threading.Tasks;
 using Jellyfin.Data.Events.Users;
 using Jellyfin.Plugin.MultiLang.Services;
@@ -44,7 +45,8 @@ public class UserUpdatedConsumer : IEventConsumer<UserUpdatedEventArgs>
         }
 
         // Update username in our config if it changed
-        if (config.UserLanguages.TryGetValue(user.Id, out var userConfig))
+        var userConfig = config.UserLanguages.FirstOrDefault(u => u.UserId == user.Id);
+        if (userConfig != null)
         {
             if (userConfig.Username != user.Username)
             {

@@ -16,7 +16,7 @@ public class PluginConfiguration : BasePluginConfiguration
     public PluginConfiguration()
     {
         LanguageAlternatives = new List<LanguageAlternative>();
-        UserLanguages = new Dictionary<Guid, UserLanguageConfig>();
+        UserLanguages = new List<UserLanguageConfig>();
         LdapGroupMappings = new List<LdapGroupMapping>();
     }
 
@@ -48,7 +48,7 @@ public class PluginConfiguration : BasePluginConfiguration
     /// <summary>
     /// Gets or sets the per-user language assignments.
     /// </summary>
-    public Dictionary<Guid, UserLanguageConfig> UserLanguages { get; set; }
+    public List<UserLanguageConfig> UserLanguages { get; set; }
 
     /// <summary>
     /// Gets or sets the LDAP group to language mappings.

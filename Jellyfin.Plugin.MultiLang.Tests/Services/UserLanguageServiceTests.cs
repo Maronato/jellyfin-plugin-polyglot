@@ -163,13 +163,13 @@ public class UserLanguageServiceTests : IDisposable
         var userId = Guid.NewGuid();
         var alternative = _context.AddLanguageAlternative();
         _context.AddUserLanguage(userId, alternative.Id);
-        _context.Configuration.UserLanguages.Should().ContainKey(userId);
+        _context.Configuration.UserLanguages.Should().Contain(u => u.UserId == userId);
 
         // Act
         _service.RemoveUser(userId);
 
         // Assert
-        _context.Configuration.UserLanguages.Should().NotContainKey(userId);
+        _context.Configuration.UserLanguages.Should().NotContain(u => u.UserId == userId);
     }
 
     [Fact]

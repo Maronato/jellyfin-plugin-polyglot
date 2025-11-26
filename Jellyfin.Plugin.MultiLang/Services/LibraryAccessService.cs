@@ -105,7 +105,8 @@ public class LibraryAccessService : ILibraryAccessService
         }
 
         // Check if user has a language assigned
-        if (!config.UserLanguages.TryGetValue(userId, out var userConfig) || !userConfig.SelectedAlternativeId.HasValue)
+        var userConfig = config.UserLanguages.FirstOrDefault(u => u.UserId == userId);
+        if (userConfig == null || !userConfig.SelectedAlternativeId.HasValue)
         {
             return false;
         }
@@ -141,20 +142,20 @@ public class LibraryAccessService : ILibraryAccessService
 
         var changedCount = 0;
 
-        foreach (var userId in config.UserLanguages.Keys)
+        foreach (var userLang in config.UserLanguages)
         {
             cancellationToken.ThrowIfCancellationRequested();
 
             try
             {
-                if (await ReconcileUserAccessAsync(userId, cancellationToken).ConfigureAwait(false))
+                if (await ReconcileUserAccessAsync(userLang.UserId, cancellationToken).ConfigureAwait(false))
                 {
                     changedCount++;
                 }
             }
             catch (Exception ex)
             {
-                _logger.LogError(ex, "Failed to reconcile user {UserId}", userId);
+                _logger.LogError(ex, "Failed to reconcile user {UserId}", userLang.UserId);
             }
         }
 
@@ -171,7 +172,8 @@ public class LibraryAccessService : ILibraryAccessService
         }
 
         // Check if user has a language assigned
-        if (!config.UserLanguages.TryGetValue(userId, out var userConfig) || !userConfig.SelectedAlternativeId.HasValue)
+        var userConfig = config.UserLanguages.FirstOrDefault(u => u.UserId == userId);
+        if (userConfig == null || !userConfig.SelectedAlternativeId.HasValue)
         {
             yield break;
         }

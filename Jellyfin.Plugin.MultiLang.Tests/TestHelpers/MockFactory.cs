@@ -222,7 +222,7 @@ public static class TestMockFactory
             SyncUserAudioLanguage = true,
             EnableLdapIntegration = false,
             LanguageAlternatives = new List<LanguageAlternative>(),
-            UserLanguages = new Dictionary<Guid, UserLanguageConfig>(),
+            UserLanguages = new List<UserLanguageConfig>(),
             LdapGroupMappings = new List<LdapGroupMapping>()
         };
     }

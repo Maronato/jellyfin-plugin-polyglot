@@ -387,7 +387,12 @@
                     ]).then(function(results) {
                         var jellyfinUsers = results[0];
                         var config = results[1];
-                        var userLanguages = config.UserLanguages || {};
+                        // Convert UserLanguages array to a lookup object by UserId
+                        var userLanguagesArray = config.UserLanguages || [];
+                        var userLanguages = {};
+                        userLanguagesArray.forEach(function(ul) {
+                            userLanguages[ul.UserId] = ul;
+                        });
                         
                         self.users = jellyfinUsers.map(function(user) {
                             var langConfig = userLanguages[user.Id];

@@ -86,6 +86,9 @@ public class PluginTestContext : IDisposable
         bool manuallySet = false,
         string setBy = "admin")
     {
+        // Remove existing config for user if present
+        Configuration.UserLanguages.RemoveAll(u => u.UserId == userId);
+
         var userConfig = new UserLanguageConfig
         {
             UserId = userId,
@@ -95,7 +98,7 @@ public class PluginTestContext : IDisposable
             SetAt = DateTime.UtcNow,
             SetBy = setBy
         };
-        Configuration.UserLanguages[userId] = userConfig;
+        Configuration.UserLanguages.Add(userConfig);
         return userConfig;
     }
 

@@ -57,18 +57,17 @@ public class UserLanguageService : IUserLanguageService
             }
         }
 
-        // Create or update user language config
-        if (!config.UserLanguages.TryGetValue(userId, out var userConfig))
+        // Find or create user language config
+        var userConfig = config.UserLanguages.FirstOrDefault(u => u.UserId == userId);
+        if (userConfig == null)
         {
             userConfig = new UserLanguageConfig
             {
                 UserId = userId,
                 Username = user.Username
             };
-            config.UserLanguages[userId] = userConfig;
+            config.UserLanguages.Add(userConfig);
         }
-
-        var previousAlternativeId = userConfig.SelectedAlternativeId;
 
         userConfig.SelectedAlternativeId = alternativeId;
         userConfig.ManuallySet = manuallySet;
@@ -105,8 +104,7 @@ public class UserLanguageService : IUserLanguageService
             return null;
         }
 
-        config.UserLanguages.TryGetValue(userId, out var userConfig);
-        return userConfig;
+        return config.UserLanguages.FirstOrDefault(u => u.UserId == userId);
     }
 
     /// <inheritdoc />
@@ -118,12 +116,8 @@ public class UserLanguageService : IUserLanguageService
             return null;
         }
 
-        if (!config.UserLanguages.TryGetValue(userId, out var userConfig))
-        {
-            return null;
-        }
-
-        if (!userConfig.SelectedAlternativeId.HasValue)
+        var userConfig = config.UserLanguages.FirstOrDefault(u => u.UserId == userId);
+        if (userConfig == null || !userConfig.SelectedAlternativeId.HasValue)
         {
             return null;
         }
@@ -140,7 +134,8 @@ public class UserLanguageService : IUserLanguageService
             return;
         }
 
-        if (config.UserLanguages.TryGetValue(userId, out var userConfig))
+        var userConfig = config.UserLanguages.FirstOrDefault(u => u.UserId == userId);
+        if (userConfig != null)
         {
             userConfig.SelectedAlternativeId = null;
             userConfig.SetAt = DateTime.UtcNow;
@@ -169,17 +164,21 @@ public class UserLanguageService : IUserLanguageService
                 IsAdministrator = user.HasPermission(Jellyfin.Data.Enums.PermissionKind.IsAdministrator)
             };
 
-            if (config != null && config.UserLanguages.TryGetValue(user.Id, out var userConfig))
+            if (config != null)
             {
-                userInfo.AssignedAlternativeId = userConfig.SelectedAlternativeId;
-                userInfo.ManuallySet = userConfig.ManuallySet;
-                userInfo.SetBy = userConfig.SetBy;
-                userInfo.SetAt = userConfig.SetAt;
-
-                if (userConfig.SelectedAlternativeId.HasValue)
+                var userConfig = config.UserLanguages.FirstOrDefault(u => u.UserId == user.Id);
+                if (userConfig != null)
                 {
-                    var alt = config.LanguageAlternatives.FirstOrDefault(a => a.Id == userConfig.SelectedAlternativeId.Value);
-                    userInfo.AssignedAlternativeName = alt?.Name;
+                    userInfo.AssignedAlternativeId = userConfig.SelectedAlternativeId;
+                    userInfo.ManuallySet = userConfig.ManuallySet;
+                    userInfo.SetBy = userConfig.SetBy;
+                    userInfo.SetAt = userConfig.SetAt;
+
+                    if (userConfig.SelectedAlternativeId.HasValue)
+                    {
+                        var alt = config.LanguageAlternatives.FirstOrDefault(a => a.Id == userConfig.SelectedAlternativeId.Value);
+                        userInfo.AssignedAlternativeName = alt?.Name;
+                    }
                 }
             }
 
@@ -196,12 +195,8 @@ public class UserLanguageService : IUserLanguageService
             return false;
         }
 
-        if (config.UserLanguages.TryGetValue(userId, out var userConfig))
-        {
-            return userConfig.ManuallySet;
-        }
-
-        return false;
+        var userConfig = config.UserLanguages.FirstOrDefault(u => u.UserId == userId);
+        return userConfig?.ManuallySet ?? false;
     }
 
     /// <inheritdoc />
@@ -213,7 +208,8 @@ public class UserLanguageService : IUserLanguageService
             return;
         }
 
-        if (config.UserLanguages.Remove(userId))
+        var removed = config.UserLanguages.RemoveAll(u => u.UserId == userId);
+        if (removed > 0)
         {
             SaveConfiguration();
             _logger.LogInformation("Removed language assignment for deleted user {UserId}", userId);
@@ -228,4 +224,3 @@ public class UserLanguageService : IUserLanguageService
         Plugin.Instance?.SaveConfiguration();
     }
 }
-
