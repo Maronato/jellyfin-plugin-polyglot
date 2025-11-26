@@ -1,898 +1,741 @@
 <!DOCTYPE html>
-<html lang="en">
+<html lang="en" xmlns="http://www.w3.org/1999/xhtml">
 <head>
-    <meta charset="utf-8">
+    <meta charset="utf-8" />
     <title>Multi-Language Library</title>
-    <style>
-        .multiLangContainer {
-            max-width: 1200px;
-            margin: 0 auto;
-            padding: 1em;
-        }
-
-        .tabContainer {
-            margin-bottom: 2em;
-        }
-
-        .tabButtons {
-            display: flex;
-            gap: 0.5em;
-            border-bottom: 2px solid #333;
-            margin-bottom: 1em;
-        }
-
-        .tabButton {
-            padding: 0.75em 1.5em;
-            background: transparent;
-            border: none;
-            cursor: pointer;
-            color: #aaa;
-            font-size: 1em;
-            border-bottom: 2px solid transparent;
-            margin-bottom: -2px;
-            transition: all 0.2s;
-        }
-
-        .tabButton:hover {
-            color: #fff;
-        }
-
-        .tabButton.active {
-            color: #00a4dc;
-            border-bottom-color: #00a4dc;
-        }
-
-        .tabContent {
-            display: none;
-        }
-
-        .tabContent.active {
-            display: block;
-        }
-
-        .warningBanner {
-            background: #5c3d00;
-            border: 1px solid #cc7700;
-            padding: 1em;
-            margin-bottom: 1em;
-            border-radius: 4px;
-        }
-
-        .warningBanner h4 {
-            color: #ffcc00;
-            margin: 0 0 0.5em 0;
-        }
-
-        .card {
-            background: #1a1a1a;
-            border-radius: 4px;
-            padding: 1em;
-            margin-bottom: 1em;
-        }
-
-        .card h3 {
-            margin-top: 0;
-            color: #00a4dc;
-        }
-
-        .formGroup {
-            margin-bottom: 1em;
-        }
-
-        .formGroup label {
-            display: block;
-            margin-bottom: 0.5em;
-            color: #bbb;
-        }
-
-        .formGroup input[type="text"],
-        .formGroup input[type="number"],
-        .formGroup select {
-            width: 100%;
-            padding: 0.5em;
-            background: #333;
-            border: 1px solid #444;
-            color: #fff;
-            border-radius: 4px;
-        }
-
-        .formGroup input[type="checkbox"] {
-            margin-right: 0.5em;
-        }
-
-        .checkboxLabel {
-            display: flex;
-            align-items: center;
-            gap: 0.5em;
-            cursor: pointer;
-        }
-
-        .buttonRow {
-            display: flex;
-            gap: 0.5em;
-            margin-top: 1em;
-        }
-
-        .btn {
-            padding: 0.5em 1em;
-            border: none;
-            border-radius: 4px;
-            cursor: pointer;
-            font-size: 0.9em;
-            transition: background 0.2s;
-        }
-
-        .btnPrimary {
-            background: #00a4dc;
-            color: #fff;
-        }
-
-        .btnPrimary:hover {
-            background: #0088cc;
-        }
-
-        .btnSecondary {
-            background: #444;
-            color: #fff;
-        }
-
-        .btnSecondary:hover {
-            background: #555;
-        }
-
-        .btnDanger {
-            background: #cc3333;
-            color: #fff;
-        }
-
-        .btnDanger:hover {
-            background: #aa2222;
-        }
-
-        table {
-            width: 100%;
-            border-collapse: collapse;
-        }
-
-        th, td {
-            text-align: left;
-            padding: 0.75em;
-            border-bottom: 1px solid #333;
-        }
-
-        th {
-            background: #222;
-            color: #aaa;
-            font-weight: 500;
-        }
-
-        .statusBadge {
-            display: inline-block;
-            padding: 0.25em 0.5em;
-            border-radius: 3px;
-            font-size: 0.8em;
-        }
-
-        .statusPending {
-            background: #555;
-            color: #aaa;
-        }
-
-        .statusSyncing {
-            background: #1a4466;
-            color: #66aaff;
-        }
-
-        .statusSynced {
-            background: #1a4422;
-            color: #66cc88;
-        }
-
-        .statusError {
-            background: #441a1a;
-            color: #ff6666;
-        }
-
-        .ldapStatusOk {
-            color: #66cc88;
-        }
-
-        .ldapStatusError {
-            color: #ff6666;
-        }
-
-        .modal {
-            display: none;
-            position: fixed;
-            top: 0;
-            left: 0;
-            width: 100%;
-            height: 100%;
-            background: rgba(0, 0, 0, 0.8);
-            z-index: 1000;
-            align-items: center;
-            justify-content: center;
-        }
-
-        .modal.active {
-            display: flex;
-        }
-
-        .modalContent {
-            background: #1a1a1a;
-            padding: 2em;
-            border-radius: 8px;
-            max-width: 500px;
-            width: 90%;
-        }
-
-        .modalContent h3 {
-            margin-top: 0;
-            color: #00a4dc;
-        }
-
-        .description {
-            color: #888;
-            font-size: 0.9em;
-            margin-top: 0.25em;
-        }
-    </style>
 </head>
 <body>
-    <div id="multiLangConfigPage" class="multiLangContainer" data-role="page">
-        <div class="tabContainer">
-            <div class="tabButtons">
-                <button class="tabButton active" data-tab="languages">Languages</button>
-                <button class="tabButton" data-tab="users">Users</button>
-                <button class="tabButton" data-tab="ldap">LDAP</button>
-                <button class="tabButton" data-tab="settings">Settings</button>
-            </div>
+    <div id="multiLangConfigPage" data-role="page" class="page type-interior pluginConfigurationPage" data-require="emby-input,emby-button,emby-select,emby-checkbox,emby-collapse">
+        <div data-role="content">
+            <div class="content-primary">
+                <h2>Multi-Language Library</h2>
+                <p class="fieldDescription">Create language-specific library mirrors with hardlinked media files and separate metadata.</p>
 
-            <!-- Languages Tab -->
-            <div id="tabLanguages" class="tabContent active">
-                <div class="card">
-                    <h3>Jellyfin Libraries</h3>
-                    <p class="description">Existing libraries in your Jellyfin server that can be mirrored.</p>
-                    <table id="librariesTable">
-                        <thead>
-                            <tr>
-                                <th>Name</th>
-                                <th>Type</th>
-                                <th>Metadata Language</th>
-                                <th>Status</th>
-                            </tr>
-                        </thead>
-                        <tbody></tbody>
-                    </table>
-                </div>
-
-                <div class="card">
-                    <h3>Language Alternatives</h3>
-                    <p class="description">Configure language-specific library mirrors. Each alternative creates hardlinked copies with different metadata languages.</p>
-                    <div id="alternativesList"></div>
-                    <div class="buttonRow">
-                        <button class="btn btnPrimary" onclick="showAddAlternativeModal()">Add Language Alternative</button>
+                <!-- Warning Banner -->
+                <div class="paperList" style="background: #5c3d00; border: 1px solid #cc7700; margin-bottom: 1em;">
+                    <div class="listItem">
+                        <div class="listItemBody">
+                            <h3 class="listItemBodyText" style="color: #ffcc00;">⚠️ Watch History Warning</h3>
+                            <div class="fieldDescription">Changing a user's language assignment will make their watch history appear "reset" because each library has unique item IDs. The original progress is preserved in the original library.</div>
                     </div>
                 </div>
             </div>
 
-            <!-- Users Tab -->
-            <div id="tabUsers" class="tabContent">
-                <div class="warningBanner">
-                    <h4>⚠️ Watch History Warning</h4>
-                    <p>Changing a user's language will change which libraries they can access. Watch history is stored per-library, so users may appear to lose their watch progress when switching languages. Their original history remains in the original library.</p>
+                <!-- Tabs -->
+                <div class="tabs-viewmenubar" style="margin-bottom: 2em;">
+                    <button is="emby-button" class="emby-tab-button emby-button-tab active" data-tab="languagesTab">Languages</button>
+                    <button is="emby-button" class="emby-tab-button emby-button-tab" data-tab="usersTab">Users</button>
+                    <button is="emby-button" class="emby-tab-button emby-button-tab" data-tab="ldapTab">LDAP</button>
+                    <button is="emby-button" class="emby-tab-button emby-button-tab" data-tab="settingsTab">Settings</button>
                 </div>
 
-                <div class="card">
-                    <h3>User Language Assignments</h3>
-                    <table id="usersTable">
-                        <thead>
-                            <tr>
-                                <th>Username</th>
-                                <th>Assigned Language</th>
-                                <th>Set By</th>
-                                <th>Manual Override</th>
-                                <th>Actions</th>
-                            </tr>
-                        </thead>
-                        <tbody></tbody>
-                    </table>
+                <!-- Languages Tab -->
+                <div id="languagesTab" class="tabContent active">
+                    <div class="verticalSection">
+                        <h3 class="sectionTitle">Existing Jellyfin Libraries</h3>
+                        <div id="librariesList" class="paperList"></div>
+            </div>
+
+                    <div class="verticalSection">
+                        <div class="sectionTitleContainer flex align-items-center">
+                            <h3 class="sectionTitle">Language Alternatives</h3>
+                            <button is="emby-button" type="button" class="fab submit" id="btnAddAlternative" style="margin-left: auto;">
+                                <span class="material-icons add"></span>
+                            </button>
+                        </div>
+                        <div id="alternativesList" class="paperList"></div>
+                    </div>
+                </div>
+
+                <!-- Users Tab -->
+                <div id="usersTab" class="tabContent" style="display: none;">
+                    <div class="verticalSection">
+                        <h3 class="sectionTitle">User Language Assignments</h3>
+                        <div id="usersList" class="paperList"></div>
                 </div>
             </div>
 
-            <!-- LDAP Tab -->
-            <div id="tabLdap" class="tabContent">
-                <div class="card">
-                    <h3>LDAP Integration Status</h3>
-                    <div id="ldapStatus">Checking...</div>
-                </div>
+                <!-- LDAP Tab -->
+                <div id="ldapTab" class="tabContent" style="display: none;">
+                    <div class="verticalSection">
+                        <h3 class="sectionTitle">LDAP Status</h3>
+                        <div id="ldapStatus" class="paperList"></div>
+                    </div>
 
-                <div class="card">
-                    <h3>LDAP Group Mappings</h3>
-                    <p class="description">Map LDAP groups to language alternatives. When a user logs in via LDAP, they will be automatically assigned the language of their highest-priority matching group.</p>
-                    <table id="ldapGroupsTable">
-                        <thead>
-                            <tr>
-                                <th>LDAP Group</th>
-                                <th>Language</th>
-                                <th>Priority</th>
-                                <th>Actions</th>
-                            </tr>
-                        </thead>
-                        <tbody></tbody>
-                    </table>
-                    <div class="buttonRow">
-                        <button class="btn btnPrimary" onclick="showAddLdapMappingModal()">Add Group Mapping</button>
-                        <button class="btn btnSecondary" onclick="testLdapConnection()">Test Connection</button>
+                    <div class="verticalSection">
+                        <div class="sectionTitleContainer flex align-items-center">
+                            <h3 class="sectionTitle">Group Mappings</h3>
+                            <button is="emby-button" type="button" class="fab submit" id="btnAddLdapMapping" style="margin-left: auto;">
+                                <span class="material-icons add"></span>
+                            </button>
+                        </div>
+                        <div id="ldapMappingsList" class="paperList"></div>
+                    </div>
+
+                    <div class="verticalSection">
+                        <button is="emby-button" type="button" class="raised" id="btnTestLdap">
+                            <span>Test LDAP Connection</span>
+                        </button>
                     </div>
                 </div>
-            </div>
 
-            <!-- Settings Tab -->
-            <div id="tabSettings" class="tabContent">
-                <div class="card">
-                    <h3>Language Sync Options</h3>
-                    <div class="formGroup">
-                        <label class="checkboxLabel">
-                            <input type="checkbox" id="syncDisplayLanguage">
-                            Sync User Display Language
+                <!-- Settings Tab -->
+                <div id="settingsTab" class="tabContent" style="display: none;">
+                    <form id="settingsForm">
+                        <div class="verticalSection">
+                            <h3 class="sectionTitle">Sync Settings</h3>
+                            
+                            <div class="checkboxContainer checkboxContainer-withDescription">
+                                <label class="emby-checkbox-label">
+                                    <input id="syncDisplayLanguage" type="checkbox" is="emby-checkbox" />
+                                    <span>Sync Display Language</span>
+                                </label>
+                                <div class="fieldDescription">Update user's Jellyfin UI language when their plugin language changes.</div>
+                            </div>
+
+                            <div class="checkboxContainer checkboxContainer-withDescription">
+                                <label class="emby-checkbox-label">
+                                    <input id="syncSubtitleLanguage" type="checkbox" is="emby-checkbox" />
+                                    <span>Sync Subtitle Language</span>
+                                </label>
+                                <div class="fieldDescription">Update user's preferred subtitle language.</div>
+                            </div>
+
+                            <div class="checkboxContainer checkboxContainer-withDescription">
+                                <label class="emby-checkbox-label">
+                                    <input id="syncAudioLanguage" type="checkbox" is="emby-checkbox" />
+                                    <span>Sync Audio Language</span>
                         </label>
-                        <p class="description">Update the user's Jellyfin UI language when their plugin language changes.</p>
+                                <div class="fieldDescription">Update user's preferred audio language.</div>
                     </div>
-                    <div class="formGroup">
-                        <label class="checkboxLabel">
-                            <input type="checkbox" id="syncSubtitleLanguage">
-                            Sync Subtitle Language Preference
-                        </label>
-                        <p class="description">Update the user's preferred subtitle language.</p>
-                    </div>
-                    <div class="formGroup">
-                        <label class="checkboxLabel">
-                            <input type="checkbox" id="syncAudioLanguage">
-                            Sync Audio Language Preference
-                        </label>
-                        <p class="description">Update the user's preferred audio language.</p>
+
+                            <div class="checkboxContainer checkboxContainer-withDescription">
+                                <label class="emby-checkbox-label">
+                                    <input id="enableLdapIntegration" type="checkbox" is="emby-checkbox" />
+                                    <span>Enable LDAP Integration</span>
+                                </label>
+                                <div class="fieldDescription">Automatically assign languages based on LDAP group membership.</div>
+                </div>
+
+                            <div class="inputContainer">
+                                <label class="inputLabel inputLabelUnfocused" for="mirrorSyncInterval">Mirror Sync Interval (hours)</label>
+                                <input id="mirrorSyncInterval" type="number" is="emby-input" min="1" value="6" />
+                                <div class="fieldDescription">How often to sync mirror libraries with source libraries.</div>
                     </div>
                 </div>
 
-                <div class="card">
-                    <h3>LDAP Integration</h3>
-                    <div class="formGroup">
-                        <label class="checkboxLabel">
-                            <input type="checkbox" id="enableLdapIntegration">
-                            Enable LDAP Group-Based Assignment
-                        </label>
-                        <p class="description">Automatically assign language to new users based on their LDAP group membership.</p>
-                    </div>
+                        <div>
+                            <button is="emby-button" type="submit" class="raised button-submit block emby-button">
+                                <span>Save Settings</span>
+                            </button>
+                        </div>
+                    </form>
                 </div>
 
-                <div class="card">
-                    <h3>Synchronization</h3>
-                    <div class="formGroup">
-                        <label>Mirror Sync Interval (hours)</label>
-                        <input type="number" id="mirrorSyncInterval" min="1" max="168" value="6">
-                        <p class="description">How often to run the scheduled sync task as a fallback. Mirrors are also synced automatically after library scans.</p>
-                    </div>
-                </div>
-
-                <div class="buttonRow">
-                    <button class="btn btnPrimary" onclick="saveSettings()">Save Settings</button>
-                </div>
             </div>
         </div>
 
-        <!-- Add Alternative Modal -->
-        <div id="addAlternativeModal" class="modal">
-            <div class="modalContent">
+        <!-- Add Alternative Dialog -->
+        <div id="addAlternativeDialog" class="dialog hide" style="display: none;">
+            <div class="dialogContent">
                 <h3>Add Language Alternative</h3>
-                <div class="formGroup">
-                    <label>Name</label>
-                    <input type="text" id="altName" placeholder="e.g., Portuguese">
+                <form id="addAlternativeForm">
+                    <div class="inputContainer">
+                        <label class="inputLabel" for="altName">Name</label>
+                        <input id="altName" type="text" is="emby-input" required />
+                        <div class="fieldDescription">Display name (e.g., "Portuguese")</div>
+                    </div>
+                    <div class="inputContainer">
+                        <label class="inputLabel" for="altLanguageCode">Language Code</label>
+                        <input id="altLanguageCode" type="text" is="emby-input" required placeholder="pt-BR" />
+                        <div class="fieldDescription">Locale code for metadata (e.g., "pt-BR", "es-ES")</div>
                 </div>
-                <div class="formGroup">
-                    <label>Language Code</label>
-                    <input type="text" id="altLanguageCode" placeholder="e.g., pt-BR">
+                    <div class="inputContainer">
+                        <label class="inputLabel" for="altMetadataLang">Metadata Language</label>
+                        <input id="altMetadataLang" type="text" is="emby-input" placeholder="pt" />
+                        <div class="fieldDescription">Two-letter language code (e.g., "pt", "es")</div>
                 </div>
-                <div class="formGroup">
-                    <label>Destination Base Path</label>
-                    <input type="text" id="altDestPath" placeholder="e.g., /media/portuguese">
+                    <div class="inputContainer">
+                        <label class="inputLabel" for="altMetadataCountry">Metadata Country</label>
+                        <input id="altMetadataCountry" type="text" is="emby-input" placeholder="BR" />
+                        <div class="fieldDescription">Two-letter country code (e.g., "BR", "ES")</div>
                 </div>
-                <div class="buttonRow">
-                    <button class="btn btnPrimary" onclick="createAlternative()">Create</button>
-                    <button class="btn btnSecondary" onclick="closeModal('addAlternativeModal')">Cancel</button>
+                    <div class="formDialogFooter">
+                        <button is="emby-button" type="button" class="raised button-cancel" onclick="MultiLangConfig.closeDialog('addAlternativeDialog')">Cancel</button>
+                        <button is="emby-button" type="submit" class="raised button-submit">Create</button>
                 </div>
+                </form>
             </div>
         </div>
 
-        <!-- Add Mirror Modal -->
-        <div id="addMirrorModal" class="modal">
-            <div class="modalContent">
+        <!-- Add Mirror Dialog -->
+        <div id="addMirrorDialog" class="dialog hide" style="display: none;">
+            <div class="dialogContent">
                 <h3>Add Library Mirror</h3>
-                <input type="hidden" id="mirrorAlternativeId">
-                <div class="formGroup">
-                    <label>Source Library</label>
-                    <select id="mirrorSourceLibrary"></select>
+                <form id="addMirrorForm">
+                    <input type="hidden" id="mirrorAlternativeId" />
+                    <div class="selectContainer">
+                        <label class="selectLabel" for="mirrorSourceLibrary">Source Library</label>
+                        <select id="mirrorSourceLibrary" is="emby-select"></select>
                 </div>
-                <div class="formGroup">
-                    <label>Target Path</label>
-                    <input type="text" id="mirrorTargetPath" placeholder="Full path for mirror">
+                    <div class="inputContainer">
+                        <label class="inputLabel" for="mirrorTargetPath">Target Path</label>
+                        <input id="mirrorTargetPath" type="text" is="emby-input" required placeholder="/media/mirrors/portuguese/movies" />
+                        <div class="fieldDescription">Path where mirrored files will be created (must be on same filesystem as source)</div>
                 </div>
-                <div class="formGroup">
-                    <label>Mirror Library Name (optional)</label>
-                    <input type="text" id="mirrorLibraryName" placeholder="Leave empty for auto-generated name">
+                    <div class="inputContainer">
+                        <label class="inputLabel" for="mirrorTargetName">Library Name (optional)</label>
+                        <input id="mirrorTargetName" type="text" is="emby-input" placeholder="Movies (Portuguese)" />
+                        <div class="fieldDescription">Name for the new Jellyfin library</div>
                 </div>
-                <div class="buttonRow">
-                    <button class="btn btnPrimary" onclick="createMirror()">Create Mirror</button>
-                    <button class="btn btnSecondary" onclick="closeModal('addMirrorModal')">Cancel</button>
+                    <div class="formDialogFooter">
+                        <button is="emby-button" type="button" class="raised button-cancel" onclick="MultiLangConfig.closeDialog('addMirrorDialog')">Cancel</button>
+                        <button is="emby-button" type="submit" class="raised button-submit">Create Mirror</button>
                 </div>
+                </form>
             </div>
         </div>
 
-        <!-- Add LDAP Mapping Modal -->
-        <div id="addLdapMappingModal" class="modal">
-            <div class="modalContent">
+        <!-- Add LDAP Mapping Dialog -->
+        <div id="addLdapMappingDialog" class="dialog hide" style="display: none;">
+            <div class="dialogContent">
                 <h3>Add LDAP Group Mapping</h3>
-                <div class="formGroup">
-                    <label>LDAP Group DN or CN</label>
-                    <input type="text" id="ldapGroupDn" placeholder="e.g., CN=PortugueseUsers,OU=Groups,DC=example,DC=com">
+                <form id="addLdapMappingForm">
+                    <div class="inputContainer">
+                        <label class="inputLabel" for="ldapGroupDn">Group DN</label>
+                        <input id="ldapGroupDn" type="text" is="emby-input" required placeholder="CN=Portuguese Users,OU=Groups,DC=example,DC=com" />
                 </div>
-                <div class="formGroup">
-                    <label>Friendly Name (optional)</label>
-                    <input type="text" id="ldapGroupName" placeholder="e.g., Portuguese Users">
+                    <div class="inputContainer">
+                        <label class="inputLabel" for="ldapGroupName">Group Name (optional)</label>
+                        <input id="ldapGroupName" type="text" is="emby-input" placeholder="Portuguese Users" />
+                        <div class="fieldDescription">Friendly name, also used for CN matching</div>
                 </div>
-                <div class="formGroup">
-                    <label>Language Alternative</label>
-                    <select id="ldapLanguageAlt"></select>
+                    <div class="selectContainer">
+                        <label class="selectLabel" for="ldapLanguageAlt">Language Alternative</label>
+                        <select id="ldapLanguageAlt" is="emby-select"></select>
                 </div>
-                <div class="formGroup">
-                    <label>Priority</label>
-                    <input type="number" id="ldapPriority" value="0" min="0">
-                    <p class="description">Higher priority wins if user is in multiple groups.</p>
+                    <div class="inputContainer">
+                        <label class="inputLabel" for="ldapPriority">Priority</label>
+                        <input id="ldapPriority" type="number" is="emby-input" value="0" />
+                        <div class="fieldDescription">Higher priority wins when user is in multiple groups</div>
                 </div>
-                <div class="buttonRow">
-                    <button class="btn btnPrimary" onclick="createLdapMapping()">Add Mapping</button>
-                    <button class="btn btnSecondary" onclick="closeModal('addLdapMappingModal')">Cancel</button>
+                    <div class="formDialogFooter">
+                        <button is="emby-button" type="button" class="raised button-cancel" onclick="MultiLangConfig.closeDialog('addLdapMappingDialog')">Cancel</button>
+                        <button is="emby-button" type="submit" class="raised button-submit">Create Mapping</button>
                 </div>
-            </div>
+                </form>
         </div>
     </div>
 
-    <script>
-        const ApiClient = window.ApiClient;
-        let libraries = [];
-        let alternatives = [];
-        let users = [];
-        let ldapMappings = [];
+        <script type="text/javascript">
+            var MultiLangConfig = {
+                pluginUniqueId: 'a1b2c3d4-e5f6-7890-abcd-ef1234567890',
+                alternatives: [],
+                libraries: [],
+                users: [],
 
-        // Tab switching
-        document.querySelectorAll('.tabButton').forEach(button => {
-            button.addEventListener('click', () => {
-                document.querySelectorAll('.tabButton').forEach(b => b.classList.remove('active'));
-                document.querySelectorAll('.tabContent').forEach(c => c.classList.remove('active'));
-                button.classList.add('active');
-                document.getElementById('tab' + capitalize(button.dataset.tab)).classList.add('active');
-            });
-        });
+                // Custom API helpers for plugin-specific endpoints
+                apiGet: function(endpoint) {
+                    return ApiClient.getJSON(ApiClient.getUrl(endpoint));
+                },
 
-        function capitalize(str) {
-            return str.charAt(0).toUpperCase() + str.slice(1);
-        }
+                apiPost: function(endpoint, data) {
+                    return ApiClient.fetch({
+                        url: ApiClient.getUrl(endpoint),
+                        type: 'POST',
+                        data: JSON.stringify(data),
+                        contentType: 'application/json'
+                    });
+                },
 
-        // Initialize
-        document.addEventListener('DOMContentLoaded', () => {
-            loadLibraries();
-            loadAlternatives();
-            loadUsers();
-            loadLdapStatus();
-            loadLdapMappings();
-            loadSettings();
-        });
+                apiPut: function(endpoint, data) {
+                    return ApiClient.fetch({
+                        url: ApiClient.getUrl(endpoint),
+                        type: 'PUT',
+                        data: JSON.stringify(data),
+                        contentType: 'application/json'
+                    });
+                },
 
-        // API calls
-        async function apiGet(endpoint) {
-            const response = await ApiClient.fetch({ url: ApiClient.getUrl(endpoint), type: 'GET' });
-            return response;
-        }
+                apiDelete: function(endpoint) {
+                    return ApiClient.fetch({
+                        url: ApiClient.getUrl(endpoint),
+                        type: 'DELETE'
+                    });
+                },
 
-        async function apiPost(endpoint, data) {
-            return await ApiClient.fetch({
-                url: ApiClient.getUrl(endpoint),
-                type: 'POST',
-                contentType: 'application/json',
-                data: JSON.stringify(data)
-            });
-        }
+                // Tab switching
+                switchTab: function(tabId) {
+                    document.querySelectorAll('.tabContent').forEach(function(tab) {
+                        tab.style.display = 'none';
+                        tab.classList.remove('active');
+                    });
+                    document.querySelectorAll('.emby-tab-button').forEach(function(btn) {
+                        btn.classList.remove('active');
+                    });
+                    document.getElementById(tabId).style.display = 'block';
+                    document.getElementById(tabId).classList.add('active');
+                    document.querySelector('[data-tab="' + tabId + '"]').classList.add('active');
+                },
 
-        async function apiPut(endpoint, data) {
-            return await ApiClient.fetch({
-                url: ApiClient.getUrl(endpoint),
-                type: 'PUT',
-                contentType: 'application/json',
-                data: JSON.stringify(data)
-            });
-        }
+                // Dialog helpers
+                showDialog: function(dialogId) {
+                    var dialog = document.getElementById(dialogId);
+                    dialog.style.display = 'flex';
+                    dialog.classList.remove('hide');
+                },
 
-        async function apiDelete(endpoint) {
-            return await ApiClient.fetch({ url: ApiClient.getUrl(endpoint), type: 'DELETE' });
-        }
+                closeDialog: function(dialogId) {
+                    var dialog = document.getElementById(dialogId);
+                    dialog.style.display = 'none';
+                    dialog.classList.add('hide');
+                },
 
-        // Load data
-        async function loadLibraries() {
-            try {
-                libraries = await apiGet('MultiLang/Libraries');
-                renderLibraries();
-            } catch (e) {
-                console.error('Failed to load libraries', e);
-            }
-        }
+                // Load data
+                loadLibraries: function() {
+                    var self = this;
+                    Dashboard.showLoadingMsg();
+                    // Use built-in ApiClient method for libraries, enhanced with our plugin data
+                    Promise.all([
+                        ApiClient.getVirtualFolders(),
+                        ApiClient.getPluginConfiguration(this.pluginUniqueId)
+                    ]).then(function(results) {
+                        var folders = results[0];
+                        var config = results[1];
+                        
+                        // Build set of mirror library IDs
+                        var mirrorIds = new Set();
+                        if (config.LanguageAlternatives) {
+                            config.LanguageAlternatives.forEach(function(alt) {
+                                if (alt.MirroredLibraries) {
+                                    alt.MirroredLibraries.forEach(function(m) {
+                                        if (m.TargetLibraryId) mirrorIds.add(m.TargetLibraryId);
+                                    });
+                                }
+                            });
+                        }
+                        
+                        self.libraries = folders.map(function(folder) {
+                            return {
+                                Id: folder.ItemId,
+                                Name: folder.Name,
+                                CollectionType: folder.CollectionType,
+                                PreferredMetadataLanguage: folder.LibraryOptions ? folder.LibraryOptions.PreferredMetadataLanguage : null,
+                                IsMirror: mirrorIds.has(folder.ItemId)
+                            };
+                        });
+                        
+                        var html = '';
+                        self.libraries.forEach(function(lib) {
+                            html += '<div class="listItem">';
+                            html += '<div class="listItemBody">';
+                            html += '<div class="listItemBodyText">' + lib.Name + '</div>';
+                            html += '<div class="listItemBodyText secondary">' + (lib.CollectionType || 'mixed') + ' • ' + (lib.PreferredMetadataLanguage || 'default') + '</div>';
+                            html += '</div>';
+                            if (lib.IsMirror) {
+                                html += '<span class="material-icons" style="color: #00a4dc;">content_copy</span>';
+                            }
+                            html += '</div>';
+                        });
+                        document.getElementById('librariesList').innerHTML = html || '<p class="fieldDescription">No libraries found.</p>';
+                        Dashboard.hideLoadingMsg();
+                    });
+                },
 
-        async function loadAlternatives() {
-            try {
-                alternatives = await apiGet('MultiLang/Alternatives');
-                renderAlternatives();
-            } catch (e) {
-                console.error('Failed to load alternatives', e);
-            }
-        }
+                loadAlternatives: function() {
+                    var self = this;
+                    // Use built-in ApiClient method for plugin configuration
+                    ApiClient.getPluginConfiguration(this.pluginUniqueId).then(function(config) {
+                        self.alternatives = config.LanguageAlternatives || [];
+                        var html = '';
+                        self.alternatives.forEach(function(alt) {
+                            html += '<div class="listItem" style="flex-wrap: wrap;">';
+                            html += '<div class="listItemBody" style="flex: 1;">';
+                            html += '<div class="listItemBodyText">' + alt.Name + ' (' + alt.LanguageCode + ')</div>';
+                            html += '<div class="listItemBodyText secondary">Metadata: ' + (alt.MetadataLanguage || 'auto') + '-' + (alt.MetadataCountry || 'auto') + '</div>';
+                            html += '</div>';
+                            html += '<button is="emby-button" type="button" class="fab" onclick="MultiLangConfig.showAddMirrorDialog(\'' + alt.Id + '\')"><span class="material-icons add"></span></button>';
+                            html += '<button is="emby-button" type="button" class="fab" onclick="MultiLangConfig.syncAlternative(\'' + alt.Id + '\')"><span class="material-icons sync"></span></button>';
+                            html += '<button is="emby-button" type="button" class="fab" onclick="MultiLangConfig.deleteAlternative(\'' + alt.Id + '\')"><span class="material-icons delete"></span></button>';
+                            
+                            // Show mirrors
+                            if (alt.MirroredLibraries && alt.MirroredLibraries.length > 0) {
+                                html += '<div style="width: 100%; padding-left: 1em; margin-top: 0.5em;">';
+                                alt.MirroredLibraries.forEach(function(mirror) {
+                                    html += '<div class="listItem" style="background: rgba(0,0,0,0.2);">';
+                                    html += '<span class="material-icons">subdirectory_arrow_right</span>';
+                                    html += '<div class="listItemBody">';
+                                    html += '<div class="listItemBodyText">' + mirror.SourceLibraryName + ' → ' + mirror.TargetLibraryName + '</div>';
+                                    html += '<div class="listItemBodyText secondary">' + mirror.Status + (mirror.LastSyncedAt ? ' • Last sync: ' + new Date(mirror.LastSyncedAt).toLocaleString() : '') + '</div>';
+                                    html += '</div>';
+                                    html += '</div>';
+                                });
+                                html += '</div>';
+                            }
+                            html += '</div>';
+                        });
+                        document.getElementById('alternativesList').innerHTML = html || '<p class="fieldDescription">No language alternatives configured. Click + to add one.</p>';
+                    });
+                },
 
-        async function loadUsers() {
-            try {
-                users = await apiGet('MultiLang/Users');
-                renderUsers();
-            } catch (e) {
-                console.error('Failed to load users', e);
-            }
-        }
+                loadUsers: function() {
+                    var self = this;
+                    // Use built-in ApiClient.getUsers() and merge with plugin config
+                    Promise.all([
+                        ApiClient.getUsers(),
+                        ApiClient.getPluginConfiguration(this.pluginUniqueId)
+                    ]).then(function(results) {
+                        var jellyfinUsers = results[0];
+                        var config = results[1];
+                        var userLanguages = config.UserLanguages || {};
+                        
+                        self.users = jellyfinUsers.map(function(user) {
+                            var langConfig = userLanguages[user.Id];
+                            var altName = null;
+                            if (langConfig && langConfig.SelectedAlternativeId) {
+                                var alt = self.alternatives.find(function(a) { return a.Id === langConfig.SelectedAlternativeId; });
+                                if (alt) altName = alt.Name;
+                            }
+                            return {
+                                Id: user.Id,
+                                Username: user.Name,
+                                IsAdministrator: user.Policy && user.Policy.IsAdministrator,
+                                AssignedAlternativeId: langConfig ? langConfig.SelectedAlternativeId : null,
+                                AssignedAlternativeName: altName,
+                                ManuallySet: langConfig ? langConfig.ManuallySet : false
+                            };
+                        });
+                        
+                        var html = '';
+                        self.users.forEach(function(user) {
+                            html += '<div class="listItem">';
+                            html += '<div class="listItemBody" style="flex: 1;">';
+                            html += '<div class="listItemBodyText">' + user.Username + (user.IsAdministrator ? ' (Admin)' : '') + '</div>';
+                            html += '<div class="listItemBodyText secondary">' + (user.AssignedAlternativeName || 'No language assigned') + (user.ManuallySet ? ' (manual)' : '') + '</div>';
+                            html += '</div>';
+                            html += '<select is="emby-select" onchange="MultiLangConfig.setUserLanguage(\'' + user.Id + '\', this.value)" style="width: auto;">';
+                            html += '<option value="">-- None --</option>';
+                            self.alternatives.forEach(function(alt) {
+                                html += '<option value="' + alt.Id + '"' + (user.AssignedAlternativeId === alt.Id ? ' selected' : '') + '>' + alt.Name + '</option>';
+                            });
+                            html += '</select>';
+                            html += '</div>';
+                        });
+                        document.getElementById('usersList').innerHTML = html || '<p class="fieldDescription">No users found.</p>';
+                    });
+                },
 
-        async function loadLdapStatus() {
-            try {
-                const status = await apiGet('MultiLang/LdapStatus');
-                renderLdapStatus(status);
-            } catch (e) {
-                document.getElementById('ldapStatus').innerHTML = '<span class="ldapStatusError">Failed to load status</span>';
-            }
-        }
+                loadLdapStatus: function() {
+                    this.apiGet('MultiLang/LdapStatus').then(function(status) {
+                        var html = '<div class="listItem"><div class="listItemBody">';
+                        html += '<div class="listItemBodyText">LDAP Plugin: ' + (status.IsPluginInstalled ? '✓ Installed' : '✗ Not installed') + '</div>';
+                        html += '<div class="listItemBodyText secondary">';
+                        html += 'Configured: ' + (status.IsConfigured ? '✓' : '✗');
+                        html += ' • Integration: ' + (status.IsIntegrationEnabled ? '✓ Enabled' : '✗ Disabled');
+                        if (status.ServerAddress) html += ' • Server: ' + status.ServerAddress;
+                        html += '</div>';
+                        html += '</div></div>';
+                        document.getElementById('ldapStatus').innerHTML = html;
+                    });
+                },
 
-        async function loadLdapMappings() {
-            try {
-                ldapMappings = await apiGet('MultiLang/LdapGroups');
-                renderLdapMappings();
-            } catch (e) {
-                console.error('Failed to load LDAP mappings', e);
-            }
-        }
+                loadLdapMappings: function() {
+                    var self = this;
+                    // Use built-in ApiClient method for plugin configuration
+                    ApiClient.getPluginConfiguration(this.pluginUniqueId).then(function(config) {
+                        var mappings = config.LdapGroupMappings || [];
+                        var html = '';
+                        mappings.forEach(function(mapping) {
+                            var altName = 'Unknown';
+                            self.alternatives.forEach(function(alt) {
+                                if (alt.Id === mapping.LanguageAlternativeId) altName = alt.Name;
+                            });
+                            html += '<div class="listItem">';
+                            html += '<div class="listItemBody" style="flex: 1;">';
+                            html += '<div class="listItemBodyText">' + (mapping.LdapGroupName || mapping.LdapGroupDn) + '</div>';
+                            html += '<div class="listItemBodyText secondary">→ ' + altName + ' (Priority: ' + mapping.Priority + ')</div>';
+                            html += '</div>';
+                            html += '<button is="emby-button" type="button" class="fab" onclick="MultiLangConfig.deleteLdapMapping(\'' + mapping.LdapGroupDn + '\')"><span class="material-icons delete"></span></button>';
+                            html += '</div>';
+                        });
+                        document.getElementById('ldapMappingsList').innerHTML = html || '<p class="fieldDescription">No LDAP group mappings configured.</p>';
+                    });
+                },
 
-        async function loadSettings() {
-            try {
-                const settings = await apiGet('MultiLang/Settings');
-                document.getElementById('syncDisplayLanguage').checked = settings.SyncUserDisplayLanguage;
-                document.getElementById('syncSubtitleLanguage').checked = settings.SyncUserSubtitleLanguage;
-                document.getElementById('syncAudioLanguage').checked = settings.SyncUserAudioLanguage;
-                document.getElementById('enableLdapIntegration').checked = settings.EnableLdapIntegration;
-                document.getElementById('mirrorSyncInterval').value = settings.MirrorSyncIntervalHours;
-            } catch (e) {
-                console.error('Failed to load settings', e);
-            }
-        }
-
-        // Render functions
-        function renderLibraries() {
-            const tbody = document.querySelector('#librariesTable tbody');
-            tbody.innerHTML = libraries.map(lib => `
-                <tr>
-                    <td>${lib.Name}</td>
-                    <td>${lib.CollectionType || 'Unknown'}</td>
-                    <td>${lib.PreferredMetadataLanguage || 'Default'} / ${lib.MetadataCountryCode || 'Default'}</td>
-                    <td>${lib.IsMirror ? '<span class="statusBadge statusSynced">Mirror</span>' : 'Source'}</td>
-                </tr>
-            `).join('');
-        }
-
-        function renderAlternatives() {
-            const container = document.getElementById('alternativesList');
-            if (alternatives.length === 0) {
-                container.innerHTML = '<p style="color:#888">No language alternatives configured yet.</p>';
-                return;
-            }
-
-            container.innerHTML = alternatives.map(alt => `
-                <div class="card" style="background:#222">
-                    <div style="display:flex;justify-content:space-between;align-items:center">
-                        <h4 style="margin:0;color:#00a4dc">${alt.Name} (${alt.LanguageCode})</h4>
-                        <div>
-                            <button class="btn btnSecondary" onclick="syncAlternative('${alt.Id}')">Sync Now</button>
-                            <button class="btn btnDanger" onclick="deleteAlternative('${alt.Id}')">Delete</button>
-                        </div>
-                    </div>
-                    <p class="description">Base path: ${alt.DestinationBasePath}</p>
-                    <h5 style="margin-top:1em">Mirrored Libraries</h5>
-                    ${alt.MirroredLibraries.length === 0 ? '<p style="color:#888">No libraries mirrored yet.</p>' : `
-                        <table>
-                            <thead>
-                                <tr><th>Source</th><th>Target</th><th>Status</th><th>Last Sync</th></tr>
-                            </thead>
-                            <tbody>
-                                ${alt.MirroredLibraries.map(m => `
-                                    <tr>
-                                        <td>${m.SourceLibraryName}</td>
-                                        <td>${m.TargetLibraryName}</td>
-                                        <td><span class="statusBadge status${m.Status}">${m.Status}</span></td>
-                                        <td>${m.LastSyncedAt ? new Date(m.LastSyncedAt).toLocaleString() : 'Never'}</td>
-                                    </tr>
-                                `).join('')}
-                            </tbody>
-                        </table>
-                    `}
-                    <button class="btn btnSecondary" style="margin-top:0.5em" onclick="showAddMirrorModal('${alt.Id}')">Add Library</button>
-                </div>
-            `).join('');
-        }
-
-        function renderUsers() {
-            const tbody = document.querySelector('#usersTable tbody');
-            tbody.innerHTML = users.map(user => `
-                <tr>
-                    <td>${user.Username}${user.IsAdministrator ? ' (Admin)' : ''}</td>
-                    <td>
-                        <select onchange="setUserLanguage('${user.Id}', this.value)">
-                            <option value="">None (All Libraries)</option>
-                            ${alternatives.map(alt => `
-                                <option value="${alt.Id}" ${user.AssignedAlternativeId === alt.Id ? 'selected' : ''}>${alt.Name}</option>
-                            `).join('')}
-                        </select>
-                    </td>
-                    <td>${user.SetBy || '-'}</td>
-                    <td><input type="checkbox" ${user.ManuallySet ? 'checked' : ''} onchange="toggleManualOverride('${user.Id}', this.checked)"></td>
-                    <td>
-                        <button class="btn btnSecondary" onclick="clearUserLanguage('${user.Id}')">Clear</button>
-                    </td>
-                </tr>
-            `).join('');
-        }
-
-        function renderLdapStatus(status) {
-            const container = document.getElementById('ldapStatus');
-            let html = '<table>';
-            html += `<tr><td>LDAP Plugin Installed</td><td>${status.IsPluginInstalled ? '<span class="ldapStatusOk">Yes</span>' : '<span class="ldapStatusError">No</span>'}</td></tr>`;
-            html += `<tr><td>LDAP Configured</td><td>${status.IsConfigured ? '<span class="ldapStatusOk">Yes</span>' : '<span class="ldapStatusError">No</span>'}</td></tr>`;
-            html += `<tr><td>Integration Enabled</td><td>${status.IsIntegrationEnabled ? '<span class="ldapStatusOk">Yes</span>' : '<span class="ldapStatusError">No</span>'}</td></tr>`;
-            if (status.ServerAddress) {
-                html += `<tr><td>Server</td><td>${status.ServerAddress}</td></tr>`;
-            }
-            if (status.ErrorMessage) {
-                html += `<tr><td>Error</td><td><span class="ldapStatusError">${status.ErrorMessage}</span></td></tr>`;
-            }
-            html += '</table>';
-            container.innerHTML = html;
-        }
-
-        function renderLdapMappings() {
-            const tbody = document.querySelector('#ldapGroupsTable tbody');
-            if (ldapMappings.length === 0) {
-                tbody.innerHTML = '<tr><td colspan="4" style="color:#888">No LDAP group mappings configured.</td></tr>';
-                return;
-            }
-
-            tbody.innerHTML = ldapMappings.map(mapping => {
-                const alt = alternatives.find(a => a.Id === mapping.LanguageAlternativeId);
-                return `
-                    <tr>
-                        <td title="${mapping.LdapGroupDn}">${mapping.LdapGroupName || mapping.LdapGroupDn}</td>
-                        <td>${alt ? alt.Name : 'Unknown'}</td>
-                        <td>${mapping.Priority}</td>
-                        <td><button class="btn btnDanger" onclick="deleteLdapMapping('${mapping.Id}')">Delete</button></td>
-                    </tr>
-                `;
-            }).join('');
-        }
+                loadSettings: function() {
+                    var self = this;
+                    // Use built-in ApiClient method for plugin configuration
+                    ApiClient.getPluginConfiguration(this.pluginUniqueId).then(function(config) {
+                        document.getElementById('syncDisplayLanguage').checked = config.SyncUserDisplayLanguage;
+                        document.getElementById('syncSubtitleLanguage').checked = config.SyncUserSubtitleLanguage;
+                        document.getElementById('syncAudioLanguage').checked = config.SyncUserAudioLanguage;
+                        document.getElementById('enableLdapIntegration').checked = config.EnableLdapIntegration;
+                        document.getElementById('mirrorSyncInterval').value = config.MirrorSyncIntervalHours || 6;
+                    });
+                },
 
         // Actions
-        async function createAlternative() {
-            const name = document.getElementById('altName').value;
-            const languageCode = document.getElementById('altLanguageCode').value;
-            const destPath = document.getElementById('altDestPath').value;
+                showAddMirrorDialog: function(altId) {
+                    var self = this;
+                    document.getElementById('mirrorAlternativeId').value = altId;
+                    var select = document.getElementById('mirrorSourceLibrary');
+                    select.innerHTML = '';
+                    this.libraries.filter(function(lib) { return !lib.IsMirror; }).forEach(function(lib) {
+                        select.innerHTML += '<option value="' + lib.Id + '">' + lib.Name + '</option>';
+                    });
+                    this.showDialog('addMirrorDialog');
+                },
 
-            if (!name || !languageCode || !destPath) {
-                alert('Please fill in all fields');
-                return;
-            }
+                createAlternative: function() {
+                    var self = this;
+                    var data = {
+                        Name: document.getElementById('altName').value,
+                        LanguageCode: document.getElementById('altLanguageCode').value,
+                        MetadataLanguage: document.getElementById('altMetadataLang').value || null,
+                        MetadataCountry: document.getElementById('altMetadataCountry').value || null
+                    };
+                    Dashboard.showLoadingMsg();
+                    this.apiPost('MultiLang/Alternatives', data).then(function() {
+                        self.closeDialog('addAlternativeDialog');
+                        self.loadAlternatives();
+                        Dashboard.hideLoadingMsg();
+                    }).catch(function(e) {
+                        Dashboard.hideLoadingMsg();
+                        Dashboard.alert('Failed to create alternative: ' + e.message);
+                    });
+                },
 
-            try {
-                await apiPost('MultiLang/Alternatives', { Name: name, LanguageCode: languageCode, DestinationBasePath: destPath });
-                closeModal('addAlternativeModal');
-                loadAlternatives();
-            } catch (e) {
-                alert('Failed to create alternative: ' + e.message);
-            }
-        }
+                createMirror: function() {
+                    var self = this;
+                    var altId = document.getElementById('mirrorAlternativeId').value;
+                    var data = {
+                        SourceLibraryId: document.getElementById('mirrorSourceLibrary').value,
+                        TargetPath: document.getElementById('mirrorTargetPath').value,
+                        TargetLibraryName: document.getElementById('mirrorTargetName').value || null
+                    };
+                    Dashboard.showLoadingMsg();
+                    this.apiPost('MultiLang/Alternatives/' + altId + '/Libraries', data).then(function() {
+                        self.closeDialog('addMirrorDialog');
+                        self.loadAlternatives();
+                        self.loadLibraries();
+                        Dashboard.hideLoadingMsg();
+                    }).catch(function(e) {
+                        Dashboard.hideLoadingMsg();
+                        Dashboard.alert('Failed to create mirror: ' + e.message);
+                    });
+                },
 
-        async function deleteAlternative(id) {
-            if (!confirm('Are you sure you want to delete this language alternative?')) return;
+                syncAlternative: function(altId) {
+                    Dashboard.showLoadingMsg();
+                    this.apiPost('MultiLang/Alternatives/' + altId + '/Sync', {}).then(function() {
+                        Dashboard.hideLoadingMsg();
+                        Dashboard.alert('Sync started. Check the scheduled tasks for progress.');
+                    }).catch(function(e) {
+                        Dashboard.hideLoadingMsg();
+                        Dashboard.alert('Failed to start sync: ' + e.message);
+                    });
+                },
 
-            try {
-                await apiDelete(`MultiLang/Alternatives/${id}?deleteLibraries=true&deleteFiles=false`);
-                loadAlternatives();
-            } catch (e) {
-                alert('Failed to delete alternative: ' + e.message);
-            }
-        }
+                deleteAlternative: function(altId) {
+                    var self = this;
+                    Dashboard.confirm('Delete this language alternative and all its mirrors?', 'Confirm Delete', function(result) {
+                        if (result) {
+                            Dashboard.showLoadingMsg();
+                            self.apiDelete('MultiLang/Alternatives/' + altId + '?deleteLibraries=true&deleteFiles=true').then(function() {
+                                self.loadAlternatives();
+                                self.loadLibraries();
+                                Dashboard.hideLoadingMsg();
+                            });
+                        }
+                    });
+                },
 
-        async function syncAlternative(id) {
-            try {
-                await apiPost(`MultiLang/Alternatives/${id}/Sync`);
-                alert('Sync started. Check the libraries list for status.');
-                loadAlternatives();
-            } catch (e) {
-                alert('Failed to start sync: ' + e.message);
-            }
-        }
-
-        function showAddMirrorModal(alternativeId) {
-            document.getElementById('mirrorAlternativeId').value = alternativeId;
-            const select = document.getElementById('mirrorSourceLibrary');
-            select.innerHTML = libraries.filter(l => !l.IsMirror).map(lib =>
-                `<option value="${lib.Id}">${lib.Name}</option>`
-            ).join('');
-
-            const alt = alternatives.find(a => a.Id === alternativeId);
-            if (alt) {
-                document.getElementById('mirrorTargetPath').placeholder = alt.DestinationBasePath + '/...';
-            }
-
-            showModal('addMirrorModal');
-        }
-
-        async function createMirror() {
-            const altId = document.getElementById('mirrorAlternativeId').value;
-            const sourceId = document.getElementById('mirrorSourceLibrary').value;
-            const targetPath = document.getElementById('mirrorTargetPath').value;
-            const libraryName = document.getElementById('mirrorLibraryName').value;
-
-            if (!sourceId || !targetPath) {
-                alert('Please fill in required fields');
-                return;
-            }
-
-            try {
-                await apiPost(`MultiLang/Alternatives/${altId}/Libraries`, {
-                    SourceLibraryId: sourceId,
-                    TargetPath: targetPath,
-                    TargetLibraryName: libraryName || null
-                });
-                closeModal('addMirrorModal');
-                loadAlternatives();
-                loadLibraries();
-            } catch (e) {
-                alert('Failed to create mirror: ' + e.message);
-            }
-        }
-
-        async function setUserLanguage(userId, alternativeId) {
-            try {
-                await apiPut(`MultiLang/Users/${userId}/Language`, {
-                    AlternativeId: alternativeId || null,
+                setUserLanguage: function(userId, altId) {
+                    var self = this;
+                    Dashboard.showLoadingMsg();
+                    this.apiPut('MultiLang/Users/' + userId + '/Language', {
+                        LanguageAlternativeId: altId || null,
                     ManuallySet: true
-                });
-                loadUsers();
-            } catch (e) {
-                alert('Failed to set user language: ' + e.message);
-            }
-        }
+                    }).then(function() {
+                        self.loadUsers();
+                        Dashboard.hideLoadingMsg();
+                    }).catch(function(e) {
+                        Dashboard.hideLoadingMsg();
+                        Dashboard.alert('Failed to set user language: ' + e.message);
+                    });
+                },
 
-        async function clearUserLanguage(userId) {
-            await setUserLanguage(userId, null);
-        }
+                createLdapMapping: function() {
+                    var self = this;
+                    var data = {
+                        LdapGroupDn: document.getElementById('ldapGroupDn').value,
+                        LdapGroupName: document.getElementById('ldapGroupName').value || null,
+                        LanguageAlternativeId: document.getElementById('ldapLanguageAlt').value,
+                        Priority: parseInt(document.getElementById('ldapPriority').value) || 0
+                    };
+                    Dashboard.showLoadingMsg();
+                    this.apiPost('MultiLang/LdapGroups', data).then(function() {
+                        self.closeDialog('addLdapMappingDialog');
+                        self.loadLdapMappings();
+                        Dashboard.hideLoadingMsg();
+                    }).catch(function(e) {
+                        Dashboard.hideLoadingMsg();
+                        Dashboard.alert('Failed to create LDAP mapping: ' + e.message);
+                    });
+                },
 
-        async function toggleManualOverride(userId, isManual) {
-            const user = users.find(u => u.Id === userId);
-            if (!user) return;
+                deleteLdapMapping: function(groupDn) {
+                    var self = this;
+                    Dashboard.showLoadingMsg();
+                    this.apiDelete('MultiLang/LdapGroups/' + encodeURIComponent(groupDn)).then(function() {
+                        self.loadLdapMappings();
+                        Dashboard.hideLoadingMsg();
+                    });
+                },
 
-            try {
-                await apiPut(`MultiLang/Users/${userId}/Language`, {
-                    AlternativeId: user.AssignedAlternativeId,
-                    ManuallySet: isManual
-                });
-                loadUsers();
-            } catch (e) {
-                alert('Failed to update user: ' + e.message);
-            }
-        }
+                testLdapConnection: function() {
+                    var username = prompt('Enter username to test (optional):');
+                    Dashboard.showLoadingMsg();
+                    this.apiPost('MultiLang/TestLdap', { Username: username || null }).then(function(result) {
+                        Dashboard.hideLoadingMsg();
+                        var msg = result.Message;
+                        if (result.UserGroups && result.UserGroups.length > 0) {
+                            msg += '\n\nGroups: ' + result.UserGroups.join(', ');
+                        }
+                        if (result.MatchedLanguage) {
+                            msg += '\n\nMatched Language: ' + result.MatchedLanguage;
+                        }
+                        Dashboard.alert(msg);
+                    }).catch(function(e) {
+                        Dashboard.hideLoadingMsg();
+                        Dashboard.alert('LDAP test failed: ' + e.message);
+                    });
+                },
 
-        function showAddLdapMappingModal() {
-            const select = document.getElementById('ldapLanguageAlt');
-            select.innerHTML = alternatives.map(alt =>
-                `<option value="${alt.Id}">${alt.Name}</option>`
-            ).join('');
-            showModal('addLdapMappingModal');
-        }
+                saveSettings: function() {
+                    var self = this;
+                    Dashboard.showLoadingMsg();
+                    // Use built-in ApiClient method for plugin configuration
+                    ApiClient.getPluginConfiguration(this.pluginUniqueId).then(function(config) {
+                        // Update only the settings fields
+                        config.SyncUserDisplayLanguage = document.getElementById('syncDisplayLanguage').checked;
+                        config.SyncUserSubtitleLanguage = document.getElementById('syncSubtitleLanguage').checked;
+                        config.SyncUserAudioLanguage = document.getElementById('syncAudioLanguage').checked;
+                        config.EnableLdapIntegration = document.getElementById('enableLdapIntegration').checked;
+                        config.MirrorSyncIntervalHours = parseInt(document.getElementById('mirrorSyncInterval').value) || 6;
+                        
+                        return ApiClient.updatePluginConfiguration(self.pluginUniqueId, config);
+                    }).then(function() {
+                        Dashboard.hideLoadingMsg();
+                        Dashboard.processPluginConfigurationUpdateResult();
+                        self.loadLdapStatus();
+                    }).catch(function(e) {
+                        Dashboard.hideLoadingMsg();
+                        Dashboard.alert('Failed to save settings: ' + e.message);
+                    });
+                },
 
-        async function createLdapMapping() {
-            const groupDn = document.getElementById('ldapGroupDn').value;
-            const groupName = document.getElementById('ldapGroupName').value;
-            const langAltId = document.getElementById('ldapLanguageAlt').value;
-            const priority = parseInt(document.getElementById('ldapPriority').value) || 0;
+                init: function() {
+                    var self = this;
+                    
+                    // Load all data
+                    this.loadLibraries();
+                    this.loadAlternatives();
+                    this.loadUsers();
+                    this.loadLdapStatus();
+                    this.loadLdapMappings();
+                    this.loadSettings();
 
-            if (!groupDn || !langAltId) {
-                alert('Please fill in required fields');
-                return;
-            }
+                    // Tab buttons
+                    document.querySelectorAll('.emby-tab-button').forEach(function(btn) {
+                        btn.addEventListener('click', function() {
+                            self.switchTab(this.getAttribute('data-tab'));
+                        });
+                    });
 
-            try {
-                await apiPost('MultiLang/LdapGroups', {
-                    LdapGroupDn: groupDn,
-                    LdapGroupName: groupName || null,
-                    LanguageAlternativeId: langAltId,
-                    Priority: priority
-                });
-                closeModal('addLdapMappingModal');
-                loadLdapMappings();
-            } catch (e) {
-                alert('Failed to create LDAP mapping: ' + e.message);
-            }
-        }
+                    // Add alternative button
+                    document.getElementById('btnAddAlternative').addEventListener('click', function() {
+                        self.showDialog('addAlternativeDialog');
+                    });
 
-        async function deleteLdapMapping(id) {
-            if (!confirm('Are you sure you want to delete this LDAP mapping?')) return;
+                    // Add LDAP mapping button
+                    document.getElementById('btnAddLdapMapping').addEventListener('click', function() {
+                        var select = document.getElementById('ldapLanguageAlt');
+                        select.innerHTML = '';
+                        self.alternatives.forEach(function(alt) {
+                            select.innerHTML += '<option value="' + alt.Id + '">' + alt.Name + '</option>';
+                        });
+                        self.showDialog('addLdapMappingDialog');
+                    });
 
-            try {
-                await apiDelete(`MultiLang/LdapGroups/${id}`);
-                loadLdapMappings();
-            } catch (e) {
-                alert('Failed to delete LDAP mapping: ' + e.message);
-            }
-        }
+                    // Test LDAP button
+                    document.getElementById('btnTestLdap').addEventListener('click', function() {
+                        self.testLdapConnection();
+                    });
 
-        async function testLdapConnection() {
-            const username = prompt('Enter username to test (optional):');
-            try {
-                const result = await apiPost('MultiLang/TestLdap', { Username: username || null });
-                alert(result.Message + (result.UserGroups ? '\n\nGroups: ' + result.UserGroups.join(', ') : ''));
-            } catch (e) {
-                alert('LDAP test failed: ' + e.message);
-            }
-        }
+                    // Form submissions
+                    document.getElementById('addAlternativeForm').addEventListener('submit', function(e) {
+                        e.preventDefault();
+                        self.createAlternative();
+                    });
 
-        async function saveSettings() {
-            try {
-                await apiPut('MultiLang/Settings', {
-                    SyncUserDisplayLanguage: document.getElementById('syncDisplayLanguage').checked,
-                    SyncUserSubtitleLanguage: document.getElementById('syncSubtitleLanguage').checked,
-                    SyncUserAudioLanguage: document.getElementById('syncAudioLanguage').checked,
-                    EnableLdapIntegration: document.getElementById('enableLdapIntegration').checked,
-                    MirrorSyncIntervalHours: parseInt(document.getElementById('mirrorSyncInterval').value) || 6
-                });
-                alert('Settings saved successfully');
-                loadLdapStatus();
-            } catch (e) {
-                alert('Failed to save settings: ' + e.message);
-            }
-        }
+                    document.getElementById('addMirrorForm').addEventListener('submit', function(e) {
+                        e.preventDefault();
+                        self.createMirror();
+                    });
 
-        // Modal helpers
-        function showModal(id) {
-            document.getElementById(id).classList.add('active');
-        }
+                    document.getElementById('addLdapMappingForm').addEventListener('submit', function(e) {
+                        e.preventDefault();
+                        self.createLdapMapping();
+                    });
 
-        function closeModal(id) {
-            document.getElementById(id).classList.remove('active');
-        }
-
-        function showAddAlternativeModal() {
-            document.getElementById('altName').value = '';
-            document.getElementById('altLanguageCode').value = '';
-            document.getElementById('altDestPath').value = '';
-            showModal('addAlternativeModal');
-        }
-
-        // Close modals on outside click
-        document.querySelectorAll('.modal').forEach(modal => {
-            modal.addEventListener('click', (e) => {
-                if (e.target === modal) {
-                    modal.classList.remove('active');
+                    document.getElementById('settingsForm').addEventListener('submit', function(e) {
+                        e.preventDefault();
+                        self.saveSettings();
+                    });
                 }
-            });
+            };
+
+            document.getElementById('multiLangConfigPage').addEventListener('pageshow', function() {
+                MultiLangConfig.init();
         });
     </script>
+
+        <style type="text/css">
+            .dialog {
+                position: fixed;
+                top: 0;
+                left: 0;
+                right: 0;
+                bottom: 0;
+                background: rgba(0,0,0,0.7);
+                display: flex;
+                align-items: center;
+                justify-content: center;
+                z-index: 9999;
+            }
+            .dialog.hide {
+                display: none !important;
+            }
+            .dialogContent {
+                background: #1a1a1a;
+                padding: 2em;
+                border-radius: 8px;
+                min-width: 400px;
+                max-width: 90%;
+                max-height: 90%;
+                overflow-y: auto;
+            }
+            .formDialogFooter {
+                display: flex;
+                justify-content: flex-end;
+                gap: 1em;
+                margin-top: 1.5em;
+            }
+            .tabContent {
+                min-height: 200px;
+            }
+        </style>
+    </div>
 </body>
 </html>
-
