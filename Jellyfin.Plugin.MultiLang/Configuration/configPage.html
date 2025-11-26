@@ -42,7 +42,7 @@
                             <button is="emby-button" type="button" class="fab submit" id="btnAddAlternative" style="margin-left: auto;">
                                 <span class="material-icons add"></span>
                             </button>
-                        </div>
+                </div>
                         <div id="alternativesList" class="paperList"></div>
                     </div>
                 </div>
@@ -160,6 +160,16 @@
                         <input id="altMetadataCountry" type="text" is="emby-input" placeholder="BR" />
                         <div class="fieldDescription">Two-letter country code (e.g., "BR", "ES")</div>
                 </div>
+                    <div class="inputContainer">
+                        <label class="inputLabel" for="altDestinationPath">Destination Base Path</label>
+                        <div style="display: flex; align-items: center;">
+                            <input id="altDestinationPath" type="text" is="emby-input" required placeholder="/media/portuguese" style="flex-grow: 1;" />
+                            <button type="button" is="paper-icon-button-light" class="btnBrowseDestination" title="Browse" style="margin-left: 0.5em;">
+                                <span class="material-icons folder_open" aria-hidden="true"></span>
+                            </button>
+                        </div>
+                        <div class="fieldDescription">Base path for mirror directories (must be on same filesystem as source)</div>
+                </div>
                     <div class="formDialogFooter">
                         <button is="emby-button" type="button" class="raised button-cancel" onclick="MultiLangConfig.closeDialog('addAlternativeDialog')">Cancel</button>
                         <button is="emby-button" type="submit" class="raised button-submit">Create</button>
@@ -180,8 +190,13 @@
                 </div>
                     <div class="inputContainer">
                         <label class="inputLabel" for="mirrorTargetPath">Target Path</label>
-                        <input id="mirrorTargetPath" type="text" is="emby-input" required placeholder="/media/mirrors/portuguese/movies" />
-                        <div class="fieldDescription">Path where mirrored files will be created (must be on same filesystem as source)</div>
+                        <div style="display: flex; align-items: center;">
+                            <input id="mirrorTargetPath" type="text" is="emby-input" required style="flex-grow: 1;" />
+                            <button type="button" is="paper-icon-button-light" class="btnBrowseMirrorPath" title="Browse" style="margin-left: 0.5em;">
+                                <span class="material-icons folder_open" aria-hidden="true"></span>
+                            </button>
+                        </div>
+                        <div class="fieldDescription">Path where mirrored files will be created (auto-suggested, must be on same filesystem as source)</div>
                 </div>
                     <div class="inputContainer">
                         <label class="inputLabel" for="mirrorTargetName">Library Name (optional)</label>
@@ -289,9 +304,33 @@
                     var dialog = document.getElementById(dialogId);
                     dialog.style.display = 'none';
                     dialog.classList.add('hide');
+                    // Reset form if present
+                    var form = dialog.querySelector('form');
+                    if (form) {
+                        form.reset();
+                    }
                 },
 
-                // Load data
+                browseForPath: function(inputId) {
+                    var input = document.getElementById(inputId);
+                    var currentPath = input.value || '';
+                    
+                    var picker = new Dashboard.DirectoryBrowser();
+                    picker.show({
+                        includeDirectories: true,
+                        includeFiles: false,
+                        path: currentPath,
+                        header: 'Select Destination Folder',
+                        callback: function(path) {
+                            if (path) {
+                                input.value = path;
+                            }
+                            picker.close();
+                        }
+                    });
+                },
+
+        // Load data
                 loadLibraries: function() {
                     var self = this;
                     Dashboard.showLoadingMsg();
@@ -482,13 +521,47 @@
         // Actions
                 showAddMirrorDialog: function(altId) {
                     var self = this;
+                    var alternative = this.alternatives.find(function(a) { return a.Id === altId; });
                     document.getElementById('mirrorAlternativeId').value = altId;
+                    
                     var select = document.getElementById('mirrorSourceLibrary');
                     select.innerHTML = '';
-                    this.libraries.filter(function(lib) { return !lib.IsMirror; }).forEach(function(lib) {
+                    var availableLibs = this.libraries.filter(function(lib) { return !lib.IsMirror; });
+                    availableLibs.forEach(function(lib) {
                         select.innerHTML += '<option value="' + lib.Id + '">' + lib.Name + '</option>';
                     });
+                    
+                    // Auto-suggest target path based on base path + library name
+                    this.updateMirrorTargetPath(alternative, availableLibs[0]);
+                    
+                    // Update path when library selection changes
+                    select.onchange = function() {
+                        var selectedLib = availableLibs.find(function(lib) { return lib.Id === select.value; });
+                        self.updateMirrorTargetPath(alternative, selectedLib);
+                    };
+                    
                     this.showDialog('addMirrorDialog');
+                },
+                
+                updateMirrorTargetPath: function(alternative, library) {
+                    if (!alternative || !library) return;
+                    
+                    var basePath = alternative.DestinationBasePath || '';
+                    var libName = library.Name.toLowerCase().replace(/[^a-z0-9]/g, '-');
+                    
+                    // Remove trailing slash from base path
+                    if (basePath.endsWith('/')) {
+                        basePath = basePath.slice(0, -1);
+                    }
+                    
+                    var suggestedPath = basePath + '/' + libName;
+                    document.getElementById('mirrorTargetPath').value = suggestedPath;
+                    
+                    // Also suggest library name
+                    var targetNameInput = document.getElementById('mirrorTargetName');
+                    if (!targetNameInput.value) {
+                        targetNameInput.placeholder = library.Name + ' (' + alternative.Name + ')';
+                    }
                 },
 
                 createAlternative: function() {
@@ -497,7 +570,8 @@
                         Name: document.getElementById('altName').value,
                         LanguageCode: document.getElementById('altLanguageCode').value,
                         MetadataLanguage: document.getElementById('altMetadataLang').value || null,
-                        MetadataCountry: document.getElementById('altMetadataCountry').value || null
+                        MetadataCountry: document.getElementById('altMetadataCountry').value || null,
+                        DestinationBasePath: document.getElementById('altDestinationPath').value
                     };
                     Dashboard.showLoadingMsg();
                     this.apiPost('MultiLang/Alternatives', data).then(function() {
@@ -601,7 +675,11 @@
                 testLdapConnection: function() {
                     var username = prompt('Enter username to test (optional):');
                     Dashboard.showLoadingMsg();
-                    this.apiPost('MultiLang/TestLdap', { Username: username || null }).then(function(result) {
+                    var url = 'MultiLang/TestLdap';
+                    if (username) {
+                        url += '?username=' + encodeURIComponent(username);
+                    }
+                    this.apiPost(url, {}).then(function(result) {
                         Dashboard.hideLoadingMsg();
                         var msg = result.Message;
                         if (result.UserGroups && result.UserGroups.length > 0) {
@@ -661,6 +739,15 @@
                     // Add alternative button
                     document.getElementById('btnAddAlternative').addEventListener('click', function() {
                         self.showDialog('addAlternativeDialog');
+                    });
+
+                    // Browse destination path buttons
+                    document.querySelector('.btnBrowseDestination').addEventListener('click', function() {
+                        self.browseForPath('altDestinationPath');
+                    });
+                    
+                    document.querySelector('.btnBrowseMirrorPath').addEventListener('click', function() {
+                        self.browseForPath('mirrorTargetPath');
                     });
 
                     // Add LDAP mapping button
