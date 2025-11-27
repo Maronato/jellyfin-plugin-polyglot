@@ -496,7 +496,6 @@ public class LibraryAccessService : ILibraryAccessService
                     config.UserLanguages.Add(new UserLanguageConfig
                     {
                         UserId = user.Id,
-                        Username = user.Username,
                         IsPluginManaged = true,
                         SelectedAlternativeId = null, // Default language
                         ManuallySet = false,

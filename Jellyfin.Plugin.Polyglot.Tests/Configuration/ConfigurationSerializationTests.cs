@@ -106,7 +106,6 @@ public class ConfigurationSerializationTests
                 new UserLanguageConfig
                 {
                     UserId = userId1,
-                    Username = "user1",
                     SelectedAlternativeId = altId,
                     ManuallySet = true,
                     SetAt = DateTime.UtcNow,
@@ -115,7 +114,6 @@ public class ConfigurationSerializationTests
                 new UserLanguageConfig
                 {
                     UserId = userId2,
-                    Username = "user2",
                     SelectedAlternativeId = null, // No language assigned
                     ManuallySet = false,
                     SetAt = DateTime.UtcNow,
@@ -132,8 +130,7 @@ public class ConfigurationSerializationTests
         
         var user1Config = result.UserLanguages.Find(u => u.UserId == userId1);
         user1Config.Should().NotBeNull();
-        user1Config!.Username.Should().Be("user1");
-        user1Config.SelectedAlternativeId.Should().Be(altId);
+        user1Config!.SelectedAlternativeId.Should().Be(altId);
         user1Config.ManuallySet.Should().BeTrue();
         user1Config.SetBy.Should().Be("admin");
 
@@ -280,7 +277,6 @@ public class ConfigurationSerializationTests
                 new UserLanguageConfig
                 {
                     UserId = userId,
-                    Username = "testuser",
                     SelectedAlternativeId = portugueseAltId,
                     ManuallySet = true,
                     SetAt = DateTime.UtcNow,

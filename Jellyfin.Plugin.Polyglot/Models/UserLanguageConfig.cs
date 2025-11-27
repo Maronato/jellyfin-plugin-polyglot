@@ -13,11 +13,6 @@ public class UserLanguageConfig
     public Guid UserId { get; set; }
 
     /// <summary>
-    /// Gets or sets the username for display purposes.
-    /// </summary>
-    public string Username { get; set; } = string.Empty;
-
-    /// <summary>
     /// Gets or sets a value indicating whether the plugin manages this user's library access.
     /// When true, the plugin will set EnableAllFolders=false and configure EnabledFolders.
     /// When false, the plugin ignores this user and their Jellyfin settings remain unchanged.

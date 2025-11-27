@@ -63,8 +63,7 @@ public class UserLanguageService : IUserLanguageService
         {
             userConfig = new UserLanguageConfig
             {
-                UserId = userId,
-                Username = user.Username
+                UserId = userId
             };
             config.UserLanguages.Add(userConfig);
         }
@@ -74,7 +73,6 @@ public class UserLanguageService : IUserLanguageService
         userConfig.IsPluginManaged = isPluginManaged;
         userConfig.SetAt = DateTime.UtcNow;
         userConfig.SetBy = setBy;
-        userConfig.Username = user.Username;
 
         SaveConfiguration();
 

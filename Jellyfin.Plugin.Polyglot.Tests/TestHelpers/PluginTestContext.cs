@@ -128,7 +128,6 @@ public class PluginTestContext : IDisposable
         var userConfig = new UserLanguageConfig
         {
             UserId = userId,
-            Username = $"user_{userId.ToString()[..8]}",
             SelectedAlternativeId = alternativeId,
             ManuallySet = manuallySet,
             SetAt = DateTime.UtcNow,

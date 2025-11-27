@@ -188,7 +188,6 @@ public static class MockFactory
     /// </summary>
     public static UserLanguageConfig CreateUserLanguageConfig(
         Guid? userId = null,
-        string username = "testuser",
         Guid? alternativeId = null,
         bool manuallySet = false,
         string setBy = "admin")
@@ -196,7 +195,6 @@ public static class MockFactory
         return new UserLanguageConfig
         {
             UserId = userId ?? Guid.NewGuid(),
-            Username = username,
             SelectedAlternativeId = alternativeId,
             ManuallySet = manuallySet,
             SetAt = DateTime.UtcNow,
