@@ -44,7 +44,7 @@ public class MirrorService : IMirrorService
     /// <inheritdoc />
     public async Task CreateMirrorAsync(LanguageAlternative alternative, LibraryMirror mirror, CancellationToken cancellationToken = default)
     {
-        _logger.LogInformation("Creating mirror for library {SourceLibrary} to {TargetPath}",
+        _logger.PolyglotInfo("Creating mirror for library {0} to {1}",
             mirror.SourceLibraryName, mirror.TargetPath);
 
         var mirrorLock = _mirrorLocks.GetOrAdd(mirror.Id, _ => new SemaphoreSlim(1, 1));
@@ -105,7 +105,7 @@ public class MirrorService : IMirrorService
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "Failed to create mirror for library {SourceLibrary}", mirror.SourceLibraryName);
+            _logger.PolyglotError(ex, "Failed to create mirror for library {0}", mirror.SourceLibraryName);
             mirror.Status = SyncStatus.Error;
             mirror.LastError = ex.Message;
             SaveConfiguration();
@@ -243,12 +243,12 @@ public class MirrorService : IMirrorService
 
             SaveConfiguration();
 
-            _logger.LogInformation("Mirror sync completed: {Added} added, {Removed} removed",
+            _logger.PolyglotInfo("Mirror sync completed: {0} added, {1} removed",
                 filesToAdd.Count, filesToRemove.Count);
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "Failed to sync mirror {MirrorId}", mirror.Id);
+            _logger.PolyglotError(ex, "Failed to sync mirror {0}", mirror.Id);
             mirror.Status = SyncStatus.Error;
             mirror.LastError = ex.Message;
             SaveConfiguration();
@@ -335,7 +335,7 @@ public class MirrorService : IMirrorService
             }
             catch (Exception ex)
             {
-                _logger.LogError(ex, "Failed to sync mirror {MirrorId}", mirror.Id);
+                _logger.PolyglotError(ex, "Failed to sync mirror {0}", mirror.Id);
                 // Continue with other mirrors
             }
         }

@@ -169,6 +169,34 @@
                             </button>
                         </div>
                     </form>
+
+                    <div class="verticalSection" style="margin-top: 2em; border-top: 1px solid rgba(255,255,255,0.1); padding-top: 2em;">
+                        <h3 class="sectionTitle">Troubleshooting</h3>
+                        <p class="fieldDescription" style="margin-bottom: 1em;">
+                            Generate a debug report to help diagnose issues. The report contains sanitized information about your 
+                            plugin configuration, mirror health, and recent logs. Paths and usernames are anonymized for privacy.
+                        </p>
+                        
+                        <button is="emby-button" type="button" class="raised" id="btnGenerateDebugReport">
+                            <span class="material-icons" style="margin-right: 0.5em;">bug_report</span>
+                            <span>Generate Debug Report</span>
+                        </button>
+                        
+                        <div id="debugReportContainer" style="display: none; margin-top: 1em;">
+                            <div style="display: flex; gap: 0.5em; margin-bottom: 0.5em;">
+                                <button is="emby-button" type="button" class="raised button-submit" id="btnCopyDebugReport">
+                                    <span class="material-icons" style="margin-right: 0.5em;">content_copy</span>
+                                    <span>Copy to Clipboard</span>
+                                </button>
+                                <button is="emby-button" type="button" class="raised" id="btnHideDebugReport">
+                                    <span>Hide</span>
+                                </button>
+                            </div>
+                            <div id="debugReportPreview" style="background: rgba(0,0,0,0.3); border-radius: 4px; padding: 1em; max-height: 400px; overflow-y: auto;">
+                                <pre style="margin: 0; white-space: pre-wrap; word-break: break-word; font-family: monospace; font-size: 0.85em;"></pre>
+                            </div>
+                        </div>
+                    </div>
                 </div>
 
             </div>
@@ -1012,6 +1040,60 @@
                     });
                 },
 
+                generateDebugReport: function() {
+                    var self = this;
+                    var btn = document.getElementById('btnGenerateDebugReport');
+                    var originalText = btn.innerHTML;
+                    btn.disabled = true;
+                    btn.innerHTML = '<span class="material-icons" style="margin-right: 0.5em; animation: spin 1s linear infinite;">sync</span><span>Generating...</span>';
+                    
+                    ApiClient.ajax({
+                        type: 'GET',
+                        url: ApiClient.getUrl('Polyglot/DebugReport'),
+                        dataType: 'json'
+                    }).then(function(response) {
+                        btn.disabled = false;
+                        btn.innerHTML = originalText;
+                        
+                        self.currentDebugReport = response.Markdown;
+                        document.querySelector('#debugReportPreview pre').textContent = response.Markdown;
+                        document.getElementById('debugReportContainer').style.display = 'block';
+                    }).catch(function(e) {
+                        btn.disabled = false;
+                        btn.innerHTML = originalText;
+                        Dashboard.alert('Failed to generate debug report: ' + (e.message || 'Unknown error'));
+                    });
+                },
+
+                copyDebugReport: function() {
+                    var self = this;
+                    if (!self.currentDebugReport) {
+                        Dashboard.alert('No debug report generated yet');
+                        return;
+                    }
+                    
+                    navigator.clipboard.writeText(self.currentDebugReport).then(function() {
+                        Dashboard.alert('Debug report copied to clipboard!');
+                    }).catch(function() {
+                        // Fallback for older browsers
+                        var textarea = document.createElement('textarea');
+                        textarea.value = self.currentDebugReport;
+                        textarea.style.position = 'fixed';
+                        textarea.style.opacity = '0';
+                        document.body.appendChild(textarea);
+                        textarea.select();
+                        try {
+                            document.execCommand('copy');
+                            Dashboard.alert('Debug report copied to clipboard!');
+                        } catch (e) {
+                            Dashboard.alert('Failed to copy. Please select and copy manually.');
+                        }
+                        document.body.removeChild(textarea);
+                    });
+                },
+
+                currentDebugReport: null,
+
                 saveLdapSettings: function() {
                     var self = this;
                     Dashboard.showLoadingMsg();
@@ -1126,6 +1208,17 @@
                     // Reset exclusions button
                     document.getElementById('btnResetExclusions').addEventListener('click', function() {
                         self.resetExclusionsToDefaults();
+                    });
+
+                    // Debug report buttons
+                    document.getElementById('btnGenerateDebugReport').addEventListener('click', function() {
+                        self.generateDebugReport();
+                    });
+                    document.getElementById('btnCopyDebugReport').addEventListener('click', function() {
+                        self.copyDebugReport();
+                    });
+                    document.getElementById('btnHideDebugReport').addEventListener('click', function() {
+                        document.getElementById('debugReportContainer').style.display = 'none';
                     });
 
                     // Test LDAP button

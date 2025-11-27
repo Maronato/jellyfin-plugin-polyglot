@@ -2,6 +2,7 @@ using System;
 using System.Collections.Generic;
 using System.Threading;
 using System.Threading.Tasks;
+using Jellyfin.Plugin.Polyglot.Helpers;
 using Jellyfin.Plugin.Polyglot.Services;
 using MediaBrowser.Model.Tasks;
 using Microsoft.Extensions.Logging;
@@ -53,7 +54,7 @@ public class MirrorSyncTask : IScheduledTask
     /// <inheritdoc />
     public async Task ExecuteAsync(IProgress<double> progress, CancellationToken cancellationToken)
     {
-        _logger.LogInformation("Starting mirror sync task");
+        _logger.PolyglotInfo("Starting mirror sync task");
 
         // First, cleanup any orphaned mirrors (e.g., if a library was deleted externally)
         // This is important because the ItemRemoved event may not fire when a library is
@@ -63,7 +64,7 @@ public class MirrorSyncTask : IScheduledTask
             var cleanupResult = await _mirrorService.CleanupOrphanedMirrorsAsync(cancellationToken).ConfigureAwait(false);
             if (cleanupResult.TotalCleaned > 0)
             {
-                _logger.LogInformation("Cleaned up {Count} orphaned mirrors before sync", cleanupResult.TotalCleaned);
+                _logger.PolyglotInfo("Cleaned up {0} orphaned mirrors before sync", cleanupResult.TotalCleaned);
             }
         }
         catch (Exception ex)
@@ -106,7 +107,7 @@ public class MirrorSyncTask : IScheduledTask
             }
             catch (Exception ex)
             {
-                _logger.LogError(ex, "Failed to sync mirrors for language alternative: {Name}", alternative.Name);
+                _logger.PolyglotError(ex, "Failed to sync mirrors for language alternative: {0}", alternative.Name);
                 // Continue with other alternatives
             }
 
@@ -114,7 +115,7 @@ public class MirrorSyncTask : IScheduledTask
         }
 
         progress.Report(100);
-        _logger.LogInformation("Mirror sync task completed");
+        _logger.PolyglotInfo("Mirror sync task completed");
     }
 }
 

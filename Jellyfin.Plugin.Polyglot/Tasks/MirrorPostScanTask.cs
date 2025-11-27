@@ -1,6 +1,7 @@
 using System;
 using System.Threading;
 using System.Threading.Tasks;
+using Jellyfin.Plugin.Polyglot.Helpers;
 using Jellyfin.Plugin.Polyglot.Services;
 using MediaBrowser.Controller.Library;
 using Microsoft.Extensions.Logging;
@@ -42,7 +43,7 @@ public class MirrorPostScanTask : ILibraryPostScanTask
             return;
         }
 
-        _logger.LogInformation("Library scan completed, syncing mirrors...");
+        _logger.PolyglotInfo("Library scan completed, syncing mirrors...");
 
         var alternatives = config.LanguageAlternatives;
         if (alternatives.Count == 0)
@@ -79,7 +80,7 @@ public class MirrorPostScanTask : ILibraryPostScanTask
             }
             catch (Exception ex)
             {
-                _logger.LogError(ex, "Failed to sync mirrors for language alternative: {Name}", alternative.Name);
+                _logger.PolyglotError(ex, "Failed to sync mirrors for language alternative: {0}", alternative.Name);
                 // Continue with other alternatives
             }
 
@@ -87,7 +88,7 @@ public class MirrorPostScanTask : ILibraryPostScanTask
         }
 
         progress.Report(100);
-        _logger.LogInformation("Post-scan mirror sync completed");
+        _logger.PolyglotInfo("Post-scan mirror sync completed");
     }
 }
 

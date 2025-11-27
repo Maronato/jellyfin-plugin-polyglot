@@ -28,6 +28,7 @@ public class PolyglotController : ControllerBase
     private readonly IUserLanguageService _userLanguageService;
     private readonly ILibraryAccessService _libraryAccessService;
     private readonly ILdapIntegrationService _ldapIntegrationService;
+    private readonly IDebugReportService _debugReportService;
     private readonly ILogger<PolyglotController> _logger;
 
     /// <summary>
@@ -38,12 +39,14 @@ public class PolyglotController : ControllerBase
         IUserLanguageService userLanguageService,
         ILibraryAccessService libraryAccessService,
         ILdapIntegrationService ldapIntegrationService,
+        IDebugReportService debugReportService,
         ILogger<PolyglotController> logger)
     {
         _mirrorService = mirrorService;
         _userLanguageService = userLanguageService;
         _libraryAccessService = libraryAccessService;
         _ldapIntegrationService = ldapIntegrationService;
+        _debugReportService = debugReportService;
         _logger = logger;
     }
 
@@ -643,6 +646,31 @@ public class PolyglotController : ControllerBase
 
     #endregion
 
+    #region Debug
+
+    /// <summary>
+    /// Gets a debug report for troubleshooting.
+    /// </summary>
+    /// <param name="format">Output format: 'json' or 'markdown'. Default is 'markdown'.</param>
+    /// <param name="cancellationToken">Cancellation token.</param>
+    [HttpGet("DebugReport")]
+    [ProducesResponseType(StatusCodes.Status200OK)]
+    public async Task<IActionResult> GetDebugReport(
+        [FromQuery] string format = "markdown",
+        CancellationToken cancellationToken = default)
+    {
+        if (string.Equals(format, "json", StringComparison.OrdinalIgnoreCase))
+        {
+            var report = await _debugReportService.GenerateReportAsync(cancellationToken);
+            return Ok(report);
+        }
+
+        var markdown = await _debugReportService.GenerateMarkdownReportAsync(cancellationToken);
+        return Ok(new DebugReportResponse { Markdown = markdown });
+    }
+
+    #endregion
+
     #region Helpers
 
     private static string GetLanguageFromCode(string code)
@@ -800,6 +828,17 @@ public class PluginSettings
     /// Gets or sets whether LDAP integration is enabled.
     /// </summary>
     public bool EnableLdapIntegration { get; set; }
+}
+
+/// <summary>
+/// Response containing the debug report in Markdown format.
+/// </summary>
+public class DebugReportResponse
+{
+    /// <summary>
+    /// Gets or sets the Markdown-formatted debug report.
+    /// </summary>
+    public string Markdown { get; set; } = string.Empty;
 }
 
 #endregion

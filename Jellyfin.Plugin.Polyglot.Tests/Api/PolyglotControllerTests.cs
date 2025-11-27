@@ -22,6 +22,7 @@ public class PolyglotControllerTests : IDisposable
     private readonly Mock<IUserLanguageService> _userLanguageServiceMock;
     private readonly Mock<ILibraryAccessService> _libraryAccessServiceMock;
     private readonly Mock<ILdapIntegrationService> _ldapIntegrationServiceMock;
+    private readonly Mock<IDebugReportService> _debugReportServiceMock;
     private readonly PolyglotController _controller;
 
     public PolyglotControllerTests()
@@ -31,6 +32,7 @@ public class PolyglotControllerTests : IDisposable
         _userLanguageServiceMock = new Mock<IUserLanguageService>();
         _libraryAccessServiceMock = new Mock<ILibraryAccessService>();
         _ldapIntegrationServiceMock = new Mock<ILdapIntegrationService>();
+        _debugReportServiceMock = new Mock<IDebugReportService>();
         var logger = new Mock<ILogger<PolyglotController>>();
 
         _controller = new PolyglotController(
@@ -38,6 +40,7 @@ public class PolyglotControllerTests : IDisposable
             _userLanguageServiceMock.Object,
             _libraryAccessServiceMock.Object,
             _ldapIntegrationServiceMock.Object,
+            _debugReportServiceMock.Object,
             logger.Object);
     }
 
