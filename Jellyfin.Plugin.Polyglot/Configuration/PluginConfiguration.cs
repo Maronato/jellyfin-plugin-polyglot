@@ -33,21 +33,6 @@ public class PluginConfiguration : BasePluginConfiguration
     }
 
     /// <summary>
-    /// Gets or sets a value indicating whether to sync Jellyfin UI language when plugin language changes.
-    /// </summary>
-    public bool SyncUserDisplayLanguage { get; set; } = true;
-
-    /// <summary>
-    /// Gets or sets a value indicating whether to sync preferred subtitle language.
-    /// </summary>
-    public bool SyncUserSubtitleLanguage { get; set; } = true;
-
-    /// <summary>
-    /// Gets or sets a value indicating whether to sync preferred audio language.
-    /// </summary>
-    public bool SyncUserAudioLanguage { get; set; } = true;
-
-    /// <summary>
     /// Gets or sets a value indicating whether LDAP integration is enabled.
     /// </summary>
     public bool EnableLdapIntegration { get; set; }

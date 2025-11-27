@@ -223,25 +223,6 @@ public class LibraryAccessServiceTests : IDisposable
 
     #endregion
 
-    #region Language code parsing
-
-    [Theory]
-    [InlineData("pt-BR", "pt")]
-    [InlineData("en-US", "en")]
-    [InlineData("zh-CN", "zh")]
-    [InlineData("ja", "ja")]
-    [InlineData("", "")]
-    public void GetLanguageFromCode_ExtractsBaseLanguage(string input, string expected)
-    {
-        // This tests the helper logic used in SyncUserLanguagePreferencesAsync
-        var dashIndex = input.IndexOf('-');
-        var result = dashIndex > 0 ? input.Substring(0, dashIndex) : input;
-
-        result.Should().Be(expected);
-    }
-
-    #endregion
-
     #region IsPluginManaged Tests
 
     [Fact]

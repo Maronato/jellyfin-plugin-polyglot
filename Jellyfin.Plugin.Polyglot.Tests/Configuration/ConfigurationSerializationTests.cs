@@ -190,9 +190,6 @@ public class ConfigurationSerializationTests
         // Arrange
         var config = new PluginConfiguration
         {
-            SyncUserDisplayLanguage = false,
-            SyncUserSubtitleLanguage = true,
-            SyncUserAudioLanguage = false,
             EnableLdapIntegration = true,
             MirrorSyncIntervalHours = 12,
             UserReconciliationTime = "04:30"
@@ -202,9 +199,6 @@ public class ConfigurationSerializationTests
         var result = SerializeAndDeserialize(config);
 
         // Assert
-        result.SyncUserDisplayLanguage.Should().BeFalse();
-        result.SyncUserSubtitleLanguage.Should().BeTrue();
-        result.SyncUserAudioLanguage.Should().BeFalse();
         result.EnableLdapIntegration.Should().BeTrue();
         result.MirrorSyncIntervalHours.Should().Be(12);
         result.UserReconciliationTime.Should().Be("04:30");
@@ -225,9 +219,6 @@ public class ConfigurationSerializationTests
 
         var config = new PluginConfiguration
         {
-            SyncUserDisplayLanguage = true,
-            SyncUserSubtitleLanguage = true,
-            SyncUserAudioLanguage = true,
             EnableLdapIntegration = true,
             MirrorSyncIntervalHours = 6,
             UserReconciliationTime = "03:00",

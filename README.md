@@ -20,7 +20,6 @@ Polyglot creates language-specific "mirror" libraries using filesystem hardlinks
 -   **Per-User Language Control** — Each user sees only libraries matching their assigned language
 -   **Automatic Sync** — Mirrors update after library scans and on a configurable schedule
 -   **LDAP Integration** — Auto-assign languages based on LDAP group membership
--   **Preference Sync** — Optionally sync subtitle and audio language preferences
 
 ## Requirements
 

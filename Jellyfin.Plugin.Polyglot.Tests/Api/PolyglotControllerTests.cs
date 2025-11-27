@@ -262,8 +262,6 @@ public class PolyglotControllerTests : IDisposable
     public void GetSettings_ReturnsCurrentSettings()
     {
         // Arrange
-        _context.Configuration.SyncUserDisplayLanguage = true;
-        _context.Configuration.SyncUserSubtitleLanguage = false;
         _context.Configuration.EnableLdapIntegration = true;
         _context.Configuration.MirrorSyncIntervalHours = 12;
 
@@ -273,8 +271,6 @@ public class PolyglotControllerTests : IDisposable
         // Assert
         result.Result.Should().BeOfType<OkObjectResult>();
         var settings = (PluginSettings)((OkObjectResult)result.Result!).Value!;
-        settings.SyncUserDisplayLanguage.Should().BeTrue();
-        settings.SyncUserSubtitleLanguage.Should().BeFalse();
         settings.EnableLdapIntegration.Should().BeTrue();
         settings.MirrorSyncIntervalHours.Should().Be(12);
     }
@@ -285,9 +281,6 @@ public class PolyglotControllerTests : IDisposable
         // Arrange
         var settings = new PluginSettings
         {
-            SyncUserDisplayLanguage = false,
-            SyncUserSubtitleLanguage = true,
-            SyncUserAudioLanguage = true,
             EnableLdapIntegration = true,
             MirrorSyncIntervalHours = 24
         };
@@ -297,7 +290,6 @@ public class PolyglotControllerTests : IDisposable
 
         // Assert
         result.Should().BeOfType<NoContentResult>();
-        _context.Configuration.SyncUserDisplayLanguage.Should().BeFalse();
         _context.Configuration.EnableLdapIntegration.Should().BeTrue();
         _context.Configuration.MirrorSyncIntervalHours.Should().Be(24);
     }

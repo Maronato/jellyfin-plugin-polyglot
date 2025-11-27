@@ -42,15 +42,6 @@ public interface ILibraryAccessService
     IEnumerable<Guid> GetExpectedLibraryAccess(Guid userId);
 
     /// <summary>
-    /// Optionally syncs user display/subtitle/audio language preferences.
-    /// </summary>
-    /// <param name="userId">The user ID.</param>
-    /// <param name="languageCode">The language code (e.g., "pt-BR").</param>
-    /// <param name="cancellationToken">Cancellation token.</param>
-    /// <returns>Task representing the async operation.</returns>
-    Task SyncUserLanguagePreferencesAsync(Guid userId, string languageCode, CancellationToken cancellationToken = default);
-
-    /// <summary>
     /// Enables plugin management for all users, setting them to default language.
     /// This will set EnableAllFolders=false and configure their library access.
     /// </summary>

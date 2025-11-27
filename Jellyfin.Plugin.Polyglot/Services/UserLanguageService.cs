@@ -88,13 +88,6 @@ public class UserLanguageService : IUserLanguageService
         if (isPluginManaged)
         {
             await _libraryAccessService.UpdateUserLibraryAccessAsync(userId, cancellationToken).ConfigureAwait(false);
-
-            // Optionally sync user language preferences
-            if (alternative != null && !string.IsNullOrEmpty(alternative.LanguageCode))
-            {
-                await _libraryAccessService.SyncUserLanguagePreferencesAsync(userId, alternative.LanguageCode, cancellationToken)
-                    .ConfigureAwait(false);
-            }
         }
     }
 

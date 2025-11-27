@@ -105,31 +105,7 @@
                 <div id="settingsTab" class="tabContent" style="display: none;">
                     <form id="settingsForm">
                         <div class="verticalSection">
-                            <h3 class="sectionTitle">Sync Settings</h3>
-                            
-                            <div class="checkboxContainer checkboxContainer-withDescription">
-                                <label class="emby-checkbox-label">
-                                    <input id="syncDisplayLanguage" type="checkbox" is="emby-checkbox" />
-                                    <span>Sync Display Language</span>
-                        </label>
-                                <div class="fieldDescription">Update user's Jellyfin UI language when their plugin language changes.</div>
-                    </div>
-
-                            <div class="checkboxContainer checkboxContainer-withDescription">
-                                <label class="emby-checkbox-label">
-                                    <input id="syncSubtitleLanguage" type="checkbox" is="emby-checkbox" />
-                                    <span>Sync Subtitle Language</span>
-                        </label>
-                                <div class="fieldDescription">Update user's preferred subtitle language.</div>
-                    </div>
-
-                            <div class="checkboxContainer checkboxContainer-withDescription">
-                                <label class="emby-checkbox-label">
-                                    <input id="syncAudioLanguage" type="checkbox" is="emby-checkbox" />
-                                    <span>Sync Audio Language</span>
-                        </label>
-                                <div class="fieldDescription">Update user's preferred audio language.</div>
-                </div>
+                            <h3 class="sectionTitle">Mirror Settings</h3>
 
                             <div class="inputContainer">
                                 <label class="inputLabel inputLabelUnfocused" for="mirrorSyncInterval">Mirror Sync Interval (hours)</label>
@@ -657,9 +633,6 @@
                     var self = this;
                     // Use built-in ApiClient method for plugin configuration
                     ApiClient.getPluginConfiguration(this.pluginUniqueId).then(function(config) {
-                        document.getElementById('syncDisplayLanguage').checked = config.SyncUserDisplayLanguage;
-                        document.getElementById('syncSubtitleLanguage').checked = config.SyncUserSubtitleLanguage;
-                        document.getElementById('syncAudioLanguage').checked = config.SyncUserAudioLanguage;
                         document.getElementById('mirrorSyncInterval').value = config.MirrorSyncIntervalHours || 6;
                         
                         // Load exclusion settings
@@ -987,9 +960,6 @@
                     // Use built-in ApiClient method for plugin configuration
                     ApiClient.getPluginConfiguration(this.pluginUniqueId).then(function(config) {
                         // Update only the settings fields
-                        config.SyncUserDisplayLanguage = document.getElementById('syncDisplayLanguage').checked;
-                        config.SyncUserSubtitleLanguage = document.getElementById('syncSubtitleLanguage').checked;
-                        config.SyncUserAudioLanguage = document.getElementById('syncAudioLanguage').checked;
                         config.MirrorSyncIntervalHours = parseInt(document.getElementById('mirrorSyncInterval').value) || 6;
                         
                         // Parse exclusion settings (split by newlines, filter empty, trim whitespace)

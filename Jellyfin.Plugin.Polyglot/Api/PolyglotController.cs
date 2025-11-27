@@ -615,9 +615,6 @@ public class PolyglotController : ControllerBase
 
         return Ok(new PluginSettings
         {
-            SyncUserDisplayLanguage = config.SyncUserDisplayLanguage,
-            SyncUserSubtitleLanguage = config.SyncUserSubtitleLanguage,
-            SyncUserAudioLanguage = config.SyncUserAudioLanguage,
             EnableLdapIntegration = config.EnableLdapIntegration,
             MirrorSyncIntervalHours = config.MirrorSyncIntervalHours
         });
@@ -636,9 +633,6 @@ public class PolyglotController : ControllerBase
             return NotFound();
         }
 
-        config.SyncUserDisplayLanguage = settings.SyncUserDisplayLanguage;
-        config.SyncUserSubtitleLanguage = settings.SyncUserSubtitleLanguage;
-        config.SyncUserAudioLanguage = settings.SyncUserAudioLanguage;
         config.EnableLdapIntegration = settings.EnableLdapIntegration;
         config.MirrorSyncIntervalHours = settings.MirrorSyncIntervalHours;
 
@@ -840,21 +834,6 @@ public class TestLdapRequest
 /// </summary>
 public class PluginSettings
 {
-    /// <summary>
-    /// Gets or sets whether to sync display language.
-    /// </summary>
-    public bool SyncUserDisplayLanguage { get; set; }
-
-    /// <summary>
-    /// Gets or sets whether to sync subtitle language.
-    /// </summary>
-    public bool SyncUserSubtitleLanguage { get; set; }
-
-    /// <summary>
-    /// Gets or sets whether to sync audio language.
-    /// </summary>
-    public bool SyncUserAudioLanguage { get; set; }
-
     /// <summary>
     /// Gets or sets whether LDAP integration is enabled.
     /// </summary>

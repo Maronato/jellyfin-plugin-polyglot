@@ -344,57 +344,6 @@ public class LibraryAccessService : ILibraryAccessService
         return managed;
     }
 
-    /// <inheritdoc />
-    public async Task SyncUserLanguagePreferencesAsync(Guid userId, string languageCode, CancellationToken cancellationToken = default)
-    {
-        var config = Plugin.Instance?.Configuration;
-        if (config == null)
-        {
-            return;
-        }
-
-        var user = _userManager.GetUserById(userId);
-        if (user == null)
-        {
-            return;
-        }
-
-        var changed = false;
-        var languageBase = GetLanguageFromCode(languageCode);
-
-        // Sync subtitle language - set as array with single value
-        if (config.SyncUserSubtitleLanguage)
-        {
-            user.SubtitleLanguagePreference = languageBase;
-            changed = true;
-            _logger.LogDebug("Set subtitle language to {Language} for user {Username}", languageBase, user.Username);
-        }
-
-        // Sync audio language - set as array with single value
-        if (config.SyncUserAudioLanguage)
-        {
-            user.AudioLanguagePreference = languageBase;
-            changed = true;
-            _logger.LogDebug("Set audio language to {Language} for user {Username}", languageBase, user.Username);
-        }
-
-        if (changed)
-        {
-            await _userManager.UpdateUserAsync(user).ConfigureAwait(false);
-        }
-
-        // Note: SyncUserDisplayLanguage would require setting DisplayPreferences which
-        // requires different API access. For now, we log a message indicating this limitation.
-        if (config.SyncUserDisplayLanguage)
-        {
-            _logger.LogDebug(
-                "Display language sync requested for user {Username} to {LanguageCode}. " +
-                "UI language preferences are managed through Jellyfin's display preferences API.",
-                user.Username,
-                languageCode);
-        }
-    }
-
     /// <summary>
     /// Gets the current library access for a user.
     /// </summary>
@@ -606,19 +555,5 @@ public class LibraryAccessService : ILibraryAccessService
             addedCount,
             user.Username,
             newAccess.Count);
-    }
-
-    /// <summary>
-    /// Extracts the language code from a locale code (e.g., "pt-BR" -> "pt").
-    /// </summary>
-    private static string GetLanguageFromCode(string languageCode)
-    {
-        if (string.IsNullOrEmpty(languageCode))
-        {
-            return string.Empty;
-        }
-
-        var dashIndex = languageCode.IndexOf('-');
-        return dashIndex > 0 ? languageCode.Substring(0, dashIndex) : languageCode;
     }
 }

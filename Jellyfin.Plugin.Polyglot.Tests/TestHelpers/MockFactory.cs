@@ -229,9 +229,6 @@ public static class MockFactory
     {
         return new PluginConfiguration
         {
-            SyncUserDisplayLanguage = true,
-            SyncUserSubtitleLanguage = true,
-            SyncUserAudioLanguage = true,
             EnableLdapIntegration = false,
             LanguageAlternatives = new List<LanguageAlternative>(),
             UserLanguages = new List<UserLanguageConfig>(),
