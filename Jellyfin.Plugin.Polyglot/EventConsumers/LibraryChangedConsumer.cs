@@ -174,6 +174,10 @@ public class LibraryChangedConsumer : IHostedService, IDisposable
             }
         }
 
+        // Track sources that will become "orphaned" (no mirrors from any language)
+        // These sources should be added to affected users' access to prevent losing movies
+        var sourcesToPreserve = new HashSet<Guid>();
+
         // Delete orphaned mirrors
         foreach (var (alternative, mirror, reason) in mirrorsToDelete)
         {
@@ -190,6 +194,24 @@ public class LibraryChangedConsumer : IHostedService, IDisposable
                 // Remove from alternative's mirror list
                 alternative.MirroredLibraries.Remove(mirror);
 
+                // Check if this source now has NO mirrors from any language
+                // If so, we need to ensure users don't lose access to it
+                if (reason == "mirror deleted")
+                {
+                    var sourceHasOtherMirrors = config.LanguageAlternatives
+                        .SelectMany(a => a.MirroredLibraries)
+                        .Any(m => m.SourceLibraryId == mirror.SourceLibraryId);
+
+                    if (!sourceHasOtherMirrors && existingLibraryIds.Contains(mirror.SourceLibraryId))
+                    {
+                        sourcesToPreserve.Add(mirror.SourceLibraryId);
+                        _logger.LogInformation(
+                            "Source library {SourceLibraryId} ({SourceName}) has no more mirrors - will ensure user access",
+                            mirror.SourceLibraryId,
+                            mirror.SourceLibraryName);
+                    }
+                }
+
                 _logger.LogInformation(
                     "Removed orphaned mirror {MirrorName} ({Reason})",
                     mirror.TargetLibraryName,
@@ -205,6 +227,13 @@ public class LibraryChangedConsumer : IHostedService, IDisposable
         {
             Plugin.Instance?.SaveConfiguration();
 
+            // For sources that now have no mirrors, ensure affected users still have access
+            // This prevents users from losing access to movies when the last mirror is deleted
+            if (sourcesToPreserve.Count > 0)
+            {
+                await EnsureUsersHaveAccessToSourcesAsync(sourcesToPreserve, cancellationToken).ConfigureAwait(false);
+            }
+
             // Reconcile user access after cleanup
             try
             {
@@ -214,6 +243,39 @@ public class LibraryChangedConsumer : IHostedService, IDisposable
             catch (Exception ex)
             {
                 _logger.LogError(ex, "Failed to reconcile user access after cleanup");
+            }
+        }
+    }
+
+    /// <summary>
+    /// Ensures all managed users have access to the specified source libraries.
+    /// Called when mirrors are deleted and sources become "unmanaged".
+    /// </summary>
+    private async Task EnsureUsersHaveAccessToSourcesAsync(HashSet<Guid> sourceIds, CancellationToken cancellationToken)
+    {
+        var config = Plugin.Instance?.Configuration;
+        if (config == null)
+        {
+            return;
+        }
+
+        foreach (var userConfig in config.UserLanguages.Where(u => u.IsPluginManaged))
+        {
+            try
+            {
+                await _libraryAccessService.AddLibrariesToUserAccessAsync(
+                    userConfig.UserId,
+                    sourceIds,
+                    cancellationToken).ConfigureAwait(false);
+
+                _logger.LogDebug(
+                    "Added {Count} source libraries to user {Username}'s access",
+                    sourceIds.Count,
+                    userConfig.Username);
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Failed to add sources to user {UserId}", userConfig.UserId);
             }
         }
     }

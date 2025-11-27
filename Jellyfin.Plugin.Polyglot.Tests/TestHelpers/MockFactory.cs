@@ -13,8 +13,19 @@ namespace Jellyfin.Plugin.Polyglot.Tests.TestHelpers;
 /// <summary>
 /// Factory for creating mock objects used in tests.
 /// </summary>
-public static class TestMockFactory
+public static class MockFactory
 {
+    /// <summary>
+    /// Creates a User entity for testing.
+    /// </summary>
+    public static User CreateUser(Guid? id = null, string username = "testuser")
+    {
+        return new User(username, "Jellyfin.Server.Implementations.Users.DefaultAuthenticationProvider", "Jellyfin.Server.Implementations.Users.DefaultPasswordResetProvider")
+        {
+            Id = id ?? Guid.NewGuid()
+        };
+    }
+
     /// <summary>
     /// Creates a mock ILibraryManager with basic setup.
     /// </summary>

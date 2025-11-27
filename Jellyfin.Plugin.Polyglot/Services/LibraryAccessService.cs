@@ -250,6 +250,12 @@ public class LibraryAccessService : ILibraryAccessService
             yield break;
         }
 
+        // Build set of library IDs that actually exist in Jellyfin
+        // This is used to detect when a mirror was deleted from Jellyfin but config still references it
+        var jellyfinLibraryIds = allLibraries
+            .Select(lib => Guid.Parse(lib.ItemId))
+            .ToHashSet();
+
         foreach (var library in allLibraries)
         {
             var libraryId = Guid.Parse(library.ItemId);
@@ -281,11 +287,27 @@ public class LibraryAccessService : ILibraryAccessService
             // This is a source library - should it be shown?
             if (userMirroredSourceIds.Contains(libraryId))
             {
-                // User has a mirror for this source, so hide the source
-                continue;
+                // User has a mirror configured for this source
+                // But we should verify the mirror actually exists in Jellyfin
+                // If the mirror was deleted, fall back to showing the source
+                // "Better to have the movie with foreign metadata than no movie at all"
+                var mirrorExistsInJellyfin = alternative!.MirroredLibraries
+                    .Where(m => m.SourceLibraryId == libraryId && m.TargetLibraryId.HasValue)
+                    .Any(m => jellyfinLibraryIds.Contains(m.TargetLibraryId!.Value));
+
+                if (mirrorExistsInJellyfin)
+                {
+                    // Mirror exists, hide the source
+                    continue;
+                }
+
+                // Mirror was deleted from Jellyfin - show the source as fallback
+                _logger.LogWarning(
+                    "Mirror for source library {SourceLibraryId} was deleted from Jellyfin. Showing source as fallback.",
+                    libraryId);
             }
 
-            // Source library without a mirror for this language - show it
+            // Source library without a mirror for this language (or mirror was deleted) - show it
             yield return libraryId;
         }
     }
@@ -535,6 +557,56 @@ public class LibraryAccessService : ILibraryAccessService
 
         Plugin.Instance?.SaveConfiguration();
         _logger.LogInformation("Disabled plugin management for user {Username}", user.Username);
+    }
+
+    /// <inheritdoc />
+    public async Task AddLibrariesToUserAccessAsync(Guid userId, IEnumerable<Guid> libraryIds, CancellationToken cancellationToken = default)
+    {
+        var user = _userManager.GetUserById(userId);
+        if (user == null)
+        {
+            _logger.LogWarning("User {UserId} not found when adding libraries", userId);
+            return;
+        }
+
+        var libraryIdSet = libraryIds.ToHashSet();
+        if (libraryIdSet.Count == 0)
+        {
+            return;
+        }
+
+        // Get current access
+        var currentAccess = GetCurrentLibraryAccess(user);
+        var newAccess = new HashSet<Guid>(currentAccess);
+
+        // Add the specified libraries
+        var addedCount = 0;
+        foreach (var libraryId in libraryIdSet)
+        {
+            if (newAccess.Add(libraryId))
+            {
+                addedCount++;
+            }
+        }
+
+        if (addedCount == 0)
+        {
+            // User already has access to all specified libraries
+            return;
+        }
+
+        // Update user's access
+        user.SetPermission(PermissionKind.EnableAllFolders, false);
+        var libraryIdsArray = newAccess.Select(g => g.ToString("N")).ToArray();
+        user.SetPreference(PreferenceKind.EnabledFolders, libraryIdsArray);
+
+        await _userManager.UpdateUserAsync(user).ConfigureAwait(false);
+
+        _logger.LogInformation(
+            "Added {AddedCount} source libraries to user {Username}'s access (total: {TotalCount})",
+            addedCount,
+            user.Username,
+            newAccess.Count);
     }
 
     /// <summary>

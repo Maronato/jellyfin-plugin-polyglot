@@ -66,5 +66,15 @@ public interface ILibraryAccessService
     /// <param name="cancellationToken">Cancellation token.</param>
     /// <returns>Task representing the async operation.</returns>
     Task DisableUserAsync(Guid userId, bool restoreFullAccess = false, CancellationToken cancellationToken = default);
+
+    /// <summary>
+    /// Adds specific libraries to a user's access.
+    /// Used when mirrors are deleted and sources need to be preserved.
+    /// </summary>
+    /// <param name="userId">The user ID.</param>
+    /// <param name="libraryIds">The library IDs to add.</param>
+    /// <param name="cancellationToken">Cancellation token.</param>
+    /// <returns>Task representing the async operation.</returns>
+    Task AddLibrariesToUserAccessAsync(Guid userId, IEnumerable<Guid> libraryIds, CancellationToken cancellationToken = default);
 }
 
