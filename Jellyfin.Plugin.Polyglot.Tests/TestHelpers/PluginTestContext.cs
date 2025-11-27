@@ -46,7 +46,7 @@ public class PluginTestContext : IDisposable
         // Lock to prevent race conditions with Plugin.Instance during parallel test execution
         Monitor.Enter(_lock);
         
-        _tempConfigPath = Path.Combine(Path.GetTempPath(), "multilang_test_" + Guid.NewGuid().ToString("N"));
+        _tempConfigPath = Path.Combine(Path.GetTempPath(), "polyglot_test_" + Guid.NewGuid().ToString("N"));
         Directory.CreateDirectory(_tempConfigPath);
 
         var applicationPathsMock = new Mock<IApplicationPaths>();
