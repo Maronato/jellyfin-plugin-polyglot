@@ -9,6 +9,14 @@
     "repositoryUrl": "https://github.com/Maronato/jellyfin-polyglot",
     "versions": [
       {
+        "version": "0.4.0.0",
+        "changelog": "## What's Changed\n* Add Polyglot uninstall cleanup for mirror libraries and rebrand Multi-Lang references by @Maronato in https://github.com/Maronato/jellyfin-polyglot/pull/1\n\n## New Contributors\n* @Maronato made their first contribution in https://github.com/Maronato/jellyfin-polyglot/pull/1\n\n**Full Changelog**: https://github.com/Maronato/jellyfin-polyglot/compare/v0.3.1...v0.4.0\n",
+        "targetAbi": "10.10.0.0",
+        "sourceUrl": "https://github.com/Maronato/jellyfin-polyglot/releases/download/v0.4.0/polyglot_0.4.0.0.zip",
+        "checksum": "de1ad32f18568d4336b5257db33e4fba",
+        "timestamp": "2025-11-27T05:22:39Z"
+      },
+      {
         "version": "0.3.1.0",
         "changelog": "**Full Changelog**: https://github.com/Maronato/jellyfin-polyglot/compare/v0.3.0...v0.3.1\n",
         "targetAbi": "10.10.0.0",
