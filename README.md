@@ -131,4 +131,4 @@ dotnet build --configuration Release
 
 ## License
 
-MIT
+[GPL-3.0](LICENSE)
