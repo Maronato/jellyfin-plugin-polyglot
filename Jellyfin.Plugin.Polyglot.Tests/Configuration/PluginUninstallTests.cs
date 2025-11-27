@@ -1,4 +1,5 @@
 using FluentAssertions;
+using Jellyfin.Plugin.Polyglot.Models;
 using Jellyfin.Plugin.Polyglot.Tests.TestHelpers;
 using Moq;
 using Xunit;
@@ -11,77 +12,132 @@ namespace Jellyfin.Plugin.Polyglot.Tests.Configuration;
 public class PluginUninstallTests
 {
     [Fact]
-    public void OnUninstalling_RemovesMirrorLibrariesAndDirectories()
+    public void OnUninstalling_CallsDeleteMirrorAsyncForEachMirror()
     {
         using var context = new PluginTestContext();
 
-        // Arrange: create a temp base path for mirrors
-        var basePath = Path.Combine(Path.GetTempPath(), "polyglot_uninstall_base_" + Guid.NewGuid().ToString("N"));
-        Directory.CreateDirectory(basePath);
+        // Arrange: create two alternatives with mirrors
+        var alt1 = context.AddLanguageAlternative("Portuguese", "pt-BR", "/media/portuguese");
+        var alt2 = context.AddLanguageAlternative("Spanish", "es-ES", "/media/spanish");
 
-        var alternative = context.AddLanguageAlternative("Portuguese", "pt-BR", basePath);
+        var mirror1 = context.AddMirror(alt1, Guid.NewGuid(), "Movies", targetPath: "/media/portuguese/movies");
+        var mirror2 = context.AddMirror(alt1, Guid.NewGuid(), "TV Shows", targetPath: "/media/portuguese/tv");
+        var mirror3 = context.AddMirror(alt2, Guid.NewGuid(), "Movies", targetPath: "/media/spanish/movies");
 
-        var sourceId = Guid.NewGuid();
-        var targetId = Guid.NewGuid();
-        var targetDir = Path.Combine(basePath, "Movies (Portuguese)");
-        Directory.CreateDirectory(targetDir);
-
-        var mirror = context.AddMirror(
-            alternative,
-            sourceId,
-            "Movies",
-            targetLibraryId: targetId,
-            targetPath: targetDir);
-
-        // Expect the plugin to remove the Jellyfin virtual folder with refreshLibrary: true
-        context.LibraryManagerMock
-            .Setup(m => m.RemoveVirtualFolder(mirror.TargetLibraryName, true))
-            .Returns(Task.CompletedTask)
-            .Verifiable();
+        // Set up MirrorService mock to accept any delete call
+        context.MirrorServiceMock
+            .Setup(m => m.DeleteMirrorAsync(
+                It.IsAny<LibraryMirror>(),
+                It.IsAny<bool>(),
+                It.IsAny<bool>(),
+                It.IsAny<CancellationToken>()))
+            .Returns(Task.CompletedTask);
 
         // Act
         context.PluginInstance.OnUninstalling();
 
-        // Assert: library removal was invoked
-        context.LibraryManagerMock.Verify(
-            m => m.RemoveVirtualFolder(mirror.TargetLibraryName, true),
+        // Assert: DeleteMirrorAsync was called for each mirror with deleteLibrary=true, deleteFiles=true
+        context.MirrorServiceMock.Verify(
+            m => m.DeleteMirrorAsync(
+                It.Is<LibraryMirror>(mir => mir.Id == mirror1.Id),
+                true,
+                true,
+                It.IsAny<CancellationToken>()),
             Times.Once);
 
-        // Mirror directory should have been deleted
-        Directory.Exists(targetDir).Should().BeFalse("mirror directories should be removed on uninstall");
+        context.MirrorServiceMock.Verify(
+            m => m.DeleteMirrorAsync(
+                It.Is<LibraryMirror>(mir => mir.Id == mirror2.Id),
+                true,
+                true,
+                It.IsAny<CancellationToken>()),
+            Times.Once);
+
+        context.MirrorServiceMock.Verify(
+            m => m.DeleteMirrorAsync(
+                It.Is<LibraryMirror>(mir => mir.Id == mirror3.Id),
+                true,
+                true,
+                It.IsAny<CancellationToken>()),
+            Times.Once);
+
+        // Total of 3 calls
+        context.MirrorServiceMock.Verify(
+            m => m.DeleteMirrorAsync(
+                It.IsAny<LibraryMirror>(),
+                It.IsAny<bool>(),
+                It.IsAny<bool>(),
+                It.IsAny<CancellationToken>()),
+            Times.Exactly(3));
     }
 
     [Fact]
-    public void OnUninstalling_DoesNotDeleteDirectoriesOutsideBasePath()
+    public void OnUninstalling_ClearsConfiguration()
     {
         using var context = new PluginTestContext();
 
-        // Arrange: base path and an external directory not under that base
-        var basePath = Path.Combine(Path.GetTempPath(), "polyglot_uninstall_base_" + Guid.NewGuid().ToString("N"));
-        Directory.CreateDirectory(basePath);
+        // Arrange: add some configuration data
+        var alt = context.AddLanguageAlternative("Portuguese", "pt-BR", "/media/portuguese");
+        context.AddMirror(alt, Guid.NewGuid(), "Movies");
+        context.AddUserLanguage(Guid.NewGuid(), alt.Id);
+        context.AddLdapGroupMapping("cn=portuguese,ou=groups,dc=example,dc=com", alt.Id);
 
-        var externalDir = Path.Combine(Path.GetTempPath(), "polyglot_uninstall_external_" + Guid.NewGuid().ToString("N"));
-        Directory.CreateDirectory(externalDir);
-
-        var alternative = context.AddLanguageAlternative("Portuguese", "pt-BR", basePath);
-
-        var sourceId = Guid.NewGuid();
-        var targetId = Guid.NewGuid();
-
-        // TargetPath is outside the configured base path
-        context.AddMirror(
-            alternative,
-            sourceId,
-            "Movies",
-            targetLibraryId: targetId,
-            targetPath: externalDir);
+        context.MirrorServiceMock
+            .Setup(m => m.DeleteMirrorAsync(
+                It.IsAny<LibraryMirror>(),
+                It.IsAny<bool>(),
+                It.IsAny<bool>(),
+                It.IsAny<CancellationToken>()))
+            .Returns(Task.CompletedTask);
 
         // Act
         context.PluginInstance.OnUninstalling();
 
-        // Assert: external directory should not be deleted because it's outside DestinationBasePath
-        Directory.Exists(externalDir).Should().BeTrue("paths outside the base path must not be deleted on uninstall");
+        // Assert: configuration should be cleared
+        context.Configuration.LanguageAlternatives.Should().BeEmpty();
+        context.Configuration.UserLanguages.Should().BeEmpty();
+        context.Configuration.LdapGroupMappings.Should().BeEmpty();
+    }
+
+    [Fact]
+    public void OnUninstalling_ContinuesOnDeleteFailure()
+    {
+        using var context = new PluginTestContext();
+
+        // Arrange: add two mirrors
+        var alt = context.AddLanguageAlternative("Portuguese", "pt-BR", "/media/portuguese");
+        var mirror1 = context.AddMirror(alt, Guid.NewGuid(), "Movies");
+        var mirror2 = context.AddMirror(alt, Guid.NewGuid(), "TV Shows");
+
+        // First delete throws, second succeeds
+        context.MirrorServiceMock
+            .Setup(m => m.DeleteMirrorAsync(
+                It.Is<LibraryMirror>(mir => mir.Id == mirror1.Id),
+                It.IsAny<bool>(),
+                It.IsAny<bool>(),
+                It.IsAny<CancellationToken>()))
+            .ThrowsAsync(new InvalidOperationException("Delete failed"));
+
+        context.MirrorServiceMock
+            .Setup(m => m.DeleteMirrorAsync(
+                It.Is<LibraryMirror>(mir => mir.Id == mirror2.Id),
+                It.IsAny<bool>(),
+                It.IsAny<bool>(),
+                It.IsAny<CancellationToken>()))
+            .Returns(Task.CompletedTask);
+
+        // Act - should not throw
+        var act = () => context.PluginInstance.OnUninstalling();
+        act.Should().NotThrow();
+
+        // Assert: both mirrors were attempted
+        context.MirrorServiceMock.Verify(
+            m => m.DeleteMirrorAsync(
+                It.IsAny<LibraryMirror>(),
+                It.IsAny<bool>(),
+                It.IsAny<bool>(),
+                It.IsAny<CancellationToken>()),
+            Times.Exactly(2));
     }
 }
-
 

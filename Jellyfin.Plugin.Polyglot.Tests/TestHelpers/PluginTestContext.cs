@@ -1,7 +1,8 @@
 using Jellyfin.Plugin.Polyglot.Configuration;
 using Jellyfin.Plugin.Polyglot.Models;
+using Jellyfin.Plugin.Polyglot.Services;
+using MediaBrowser.Common;
 using MediaBrowser.Common.Configuration;
-using MediaBrowser.Controller.Library;
 using MediaBrowser.Model.Serialization;
 using Microsoft.Extensions.Logging;
 using Moq;
@@ -25,10 +26,16 @@ public class PluginTestContext : IDisposable
     public PluginConfiguration Configuration => _plugin.Configuration;
 
     /// <summary>
-    /// Gets the mock library manager used when constructing the plugin.
+    /// Gets the mock application host used when constructing the plugin.
+    /// Useful for configuring service resolution during tests.
+    /// </summary>
+    public Mock<IApplicationHost> ApplicationHostMock { get; }
+
+    /// <summary>
+    /// Gets the mock mirror service resolved via the application host.
     /// Useful for verifying interactions such as uninstall cleanup.
     /// </summary>
-    public Mock<ILibraryManager> LibraryManagerMock { get; }
+    public Mock<IMirrorService> MirrorServiceMock { get; }
 
     /// <summary>
     /// Gets the mock logger used when constructing the plugin.
@@ -59,13 +66,21 @@ public class PluginTestContext : IDisposable
             .Returns(new PluginConfiguration());
         xmlSerializerMock.Setup(s => s.SerializeToFile(It.IsAny<object>(), It.IsAny<string>()));
 
-        LibraryManagerMock = new Mock<ILibraryManager>();
+        // Set up application host with service resolution
+        ApplicationHostMock = new Mock<IApplicationHost>();
+        MirrorServiceMock = new Mock<IMirrorService>();
+        
+        // Wire up Resolve<IMirrorService>() to return our mock
+        ApplicationHostMock
+            .Setup(h => h.Resolve<IMirrorService>())
+            .Returns(MirrorServiceMock.Object);
+
         PluginLoggerMock = new Mock<ILogger<Plugin>>();
 
         _plugin = new Plugin(
             applicationPathsMock.Object,
             xmlSerializerMock.Object,
-            LibraryManagerMock.Object,
+            ApplicationHostMock.Object,
             PluginLoggerMock.Object);
         
         // Verify Plugin.Instance is set correctly

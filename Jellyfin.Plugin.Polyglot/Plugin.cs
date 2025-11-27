@@ -1,11 +1,11 @@
 using System;
 using System.Collections.Generic;
-using System.IO;
+using System.Linq;
 using Jellyfin.Plugin.Polyglot.Configuration;
-using Jellyfin.Plugin.Polyglot.Helpers;
+using Jellyfin.Plugin.Polyglot.Services;
+using MediaBrowser.Common;
 using MediaBrowser.Common.Configuration;
 using MediaBrowser.Common.Plugins;
-using MediaBrowser.Controller.Library;
 using MediaBrowser.Model.Plugins;
 using MediaBrowser.Model.Serialization;
 using Microsoft.Extensions.Logging;
@@ -18,7 +18,7 @@ namespace Jellyfin.Plugin.Polyglot;
 /// </summary>
 public class Plugin : BasePlugin<PluginConfiguration>, IHasWebPages
 {
-    private readonly ILibraryManager _libraryManager;
+    private readonly IApplicationHost _applicationHost;
     private readonly ILogger<Plugin> _logger;
 
     /// <summary>
@@ -31,17 +31,17 @@ public class Plugin : BasePlugin<PluginConfiguration>, IHasWebPages
     /// </summary>
     /// <param name="applicationPaths">The application paths.</param>
     /// <param name="xmlSerializer">The XML serializer.</param>
-    /// <param name="libraryManager">The Jellyfin library manager.</param>
+    /// <param name="applicationHost">The Jellyfin application host for resolving services.</param>
     /// <param name="logger">The plugin logger.</param>
     public Plugin(
         IApplicationPaths applicationPaths,
         IXmlSerializer xmlSerializer,
-        ILibraryManager libraryManager,
+        IApplicationHost applicationHost,
         ILogger<Plugin> logger)
         : base(applicationPaths, xmlSerializer)
     {
         Instance = this;
-        _libraryManager = libraryManager;
+        _applicationHost = applicationHost;
         _logger = logger;
     }
 
@@ -89,60 +89,38 @@ public class Plugin : BasePlugin<PluginConfiguration>, IHasWebPages
         {
             _logger.LogInformation("Polyglot plugin uninstall: starting cleanup of mirror libraries and directories");
 
+            // Resolve the mirror service to handle proper cleanup
+            var mirrorService = _applicationHost.Resolve<IMirrorService>();
+
             foreach (var alternative in config.LanguageAlternatives)
             {
-                foreach (var mirror in alternative.MirroredLibraries)
+                // Create a copy of the list since DeleteMirrorAsync may modify it
+                var mirrorsToDelete = alternative.MirroredLibraries.ToList();
+
+                foreach (var mirror in mirrorsToDelete)
                 {
-                    // Remove Jellyfin virtual folders created for mirrors
-                    if (mirror.TargetLibraryId.HasValue && !string.IsNullOrWhiteSpace(mirror.TargetLibraryName))
+                    try
                     {
-                        try
-                        {
-                            _logger.LogInformation(
-                                "Polyglot uninstall: removing mirror library {LibraryName}",
-                                mirror.TargetLibraryName);
+                        _logger.LogInformation(
+                            "Polyglot uninstall: deleting mirror {MirrorId} ({LibraryName})",
+                            mirror.Id,
+                            mirror.TargetLibraryName);
 
-                            // Block until removal completes so we don't leave behind references
-                            _libraryManager
-                                .RemoveVirtualFolder(mirror.TargetLibraryName, true)
-                                .GetAwaiter()
-                                .GetResult();
-                        }
-                        catch (Exception ex)
-                        {
-                            _logger.LogWarning(
-                                ex,
-                                "Polyglot uninstall: failed to remove mirror library {LibraryName}",
-                                mirror.TargetLibraryName);
-                        }
+                        // Use the service's DeleteMirrorAsync which handles:
+                        // - Removing the Jellyfin virtual folder with refreshLibrary: true
+                        // - Deleting the mirror files/directory
+                        // - Proper locking and error handling
+                        mirrorService
+                            .DeleteMirrorAsync(mirror, deleteLibrary: true, deleteFiles: true)
+                            .GetAwaiter()
+                            .GetResult();
                     }
-
-                    // Delete mirror directories, but only when safely under the configured base path
-                    if (!string.IsNullOrWhiteSpace(mirror.TargetPath)
-                        && !string.IsNullOrWhiteSpace(alternative.DestinationBasePath)
-                        && Directory.Exists(mirror.TargetPath)
-                        && FileSystemHelper.IsPathSafe(mirror.TargetPath, alternative.DestinationBasePath))
+                    catch (Exception ex)
                     {
-                        try
-                        {
-                            _logger.LogInformation(
-                                "Polyglot uninstall: deleting mirror directory {Path}",
-                                mirror.TargetPath);
-
-                            Directory.Delete(mirror.TargetPath, true);
-
-                            // Clean up any empty parent directories up to the base path
-                            var parent = Path.GetDirectoryName(mirror.TargetPath)
-                                         ?? alternative.DestinationBasePath;
-                            FileSystemHelper.CleanupEmptyDirectories(parent, alternative.DestinationBasePath);
-                        }
-                        catch (Exception ex)
-                        {
-                            _logger.LogWarning(
-                                ex,
-                                "Polyglot uninstall: failed to delete mirror directory {Path}",
-                                mirror.TargetPath);
-                        }
+                        _logger.LogWarning(
+                            ex,
+                            "Polyglot uninstall: failed to delete mirror {MirrorId}",
+                            mirror.Id);
                     }
                 }
             }
