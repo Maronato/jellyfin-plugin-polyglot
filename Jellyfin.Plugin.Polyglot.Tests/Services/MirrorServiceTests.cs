@@ -474,6 +474,146 @@ public class MirrorServiceLibraryInfoTests : IDisposable
 }
 
 /// <summary>
+/// Tests for library refresh behavior after mirror creation.
+/// </summary>
+public class MirrorServiceRefreshTests : IDisposable
+{
+    private readonly string _tempDir;
+    private readonly PluginTestContext _context;
+    private readonly Mock<ILibraryManager> _libraryManagerMock;
+    private readonly Mock<IProviderManager> _providerManagerMock;
+    private readonly Mock<IFileSystem> _fileSystemMock;
+    private readonly MirrorService _service;
+
+    public MirrorServiceRefreshTests()
+    {
+        _tempDir = Path.Combine(Path.GetTempPath(), "polyglot_refresh_test_" + Guid.NewGuid().ToString("N"));
+        Directory.CreateDirectory(_tempDir);
+
+        _context = new PluginTestContext();
+        _libraryManagerMock = new Mock<ILibraryManager>();
+        _providerManagerMock = new Mock<IProviderManager>();
+        _fileSystemMock = new Mock<IFileSystem>();
+        var logger = new Mock<ILogger<MirrorService>>();
+        _service = new MirrorService(_libraryManagerMock.Object, _providerManagerMock.Object, _fileSystemMock.Object, logger.Object);
+    }
+
+    public void Dispose()
+    {
+        _context.Dispose();
+        try
+        {
+            if (Directory.Exists(_tempDir))
+            {
+                Directory.Delete(_tempDir, true);
+            }
+        }
+        catch { }
+    }
+
+    [Fact]
+    public async Task CreateMirrorAsync_QueuesLibraryRefresh_WithFullRefreshAndLowPriority()
+    {
+        // Arrange
+        var sourceDir = Path.Combine(_tempDir, "source");
+        var targetDir = Path.Combine(_tempDir, "target");
+        Directory.CreateDirectory(sourceDir);
+
+        // Create a test file so there's something to mirror
+        File.WriteAllText(Path.Combine(sourceDir, "movie.mkv"), "video content");
+
+        var sourceId = Guid.NewGuid();
+        var targetId = Guid.NewGuid();
+
+        // Setup source library
+        _libraryManagerMock.Setup(m => m.GetVirtualFolders()).Returns(new List<VirtualFolderInfo>
+        {
+            new()
+            {
+                ItemId = sourceId.ToString(),
+                Name = "Movies",
+                CollectionType = CollectionTypeOptions.movies,
+                Locations = new[] { sourceDir },
+                LibraryOptions = new MediaBrowser.Model.Configuration.LibraryOptions()
+            }
+        });
+
+        // Setup AddVirtualFolder to succeed (async Task)
+        _libraryManagerMock
+            .Setup(m => m.AddVirtualFolder(
+                It.IsAny<string>(),
+                It.IsAny<CollectionTypeOptions?>(),
+                It.IsAny<MediaBrowser.Model.Configuration.LibraryOptions>(),
+                It.IsAny<bool>()))
+            .Returns(Task.CompletedTask);
+
+        // After AddVirtualFolder, GetVirtualFolders should return both libraries
+        var callCount = 0;
+        _libraryManagerMock
+            .Setup(m => m.GetVirtualFolders())
+            .Returns(() =>
+            {
+                callCount++;
+                var folders = new List<VirtualFolderInfo>
+                {
+                    new()
+                    {
+                        ItemId = sourceId.ToString(),
+                        Name = "Movies",
+                        CollectionType = CollectionTypeOptions.movies,
+                        Locations = new[] { sourceDir },
+                        LibraryOptions = new MediaBrowser.Model.Configuration.LibraryOptions()
+                    }
+                };
+
+                // After AddVirtualFolder is called, include the target library
+                if (callCount > 1)
+                {
+                    folders.Add(new VirtualFolderInfo
+                    {
+                        ItemId = targetId.ToString(),
+                        Name = "Movies (Portuguese)",
+                        CollectionType = CollectionTypeOptions.movies,
+                        Locations = new[] { targetDir },
+                        LibraryOptions = new MediaBrowser.Model.Configuration.LibraryOptions()
+                    });
+                }
+
+                return folders;
+            });
+
+        var alternative = _context.AddLanguageAlternative("Portuguese", "pt-BR");
+        var mirror = new LibraryMirror
+        {
+            Id = Guid.NewGuid(),
+            SourceLibraryId = sourceId,
+            SourceLibraryName = "Movies",
+            TargetPath = targetDir,
+            TargetLibraryName = "Movies (Portuguese)",
+            CollectionType = "movies",
+            Status = SyncStatus.Pending
+        };
+        alternative.MirroredLibraries.Add(mirror);
+
+        // Act
+        await _service.CreateMirrorAsync(alternative, mirror);
+
+        // Assert - verify QueueRefresh was called with correct options
+        _providerManagerMock.Verify(
+            m => m.QueueRefresh(
+                targetId,
+                It.Is<MetadataRefreshOptions>(o =>
+                    o.MetadataRefreshMode == MetadataRefreshMode.FullRefresh &&
+                    o.ImageRefreshMode == MetadataRefreshMode.FullRefresh &&
+                    o.ReplaceAllMetadata == true &&
+                    o.ReplaceAllImages == true),
+                RefreshPriority.Low),
+            Times.Once,
+            "QueueRefresh should be called with FullRefresh options and Low priority");
+    }
+}
+
+/// <summary>
 /// Tests for CleanupOrphanedMirrorsAsync - ensuring orphan mirrors are removed
 /// when Jellyfin libraries are deleted externally (e.g., via Jellyfin's UI).
 /// </summary>
