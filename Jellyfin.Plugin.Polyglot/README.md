@@ -115,8 +115,8 @@ Polyglot is a Jellyfin plugin that creates "mirror" libraries using filesystem h
 │        └── portuguese/                  ← Language alternative destination             │
 │            └── movies/                  ← Mirror library path                          │
 │                └── Inception (2010)/                                                   │
-│                    └── Inception.mkv    ← Hardlink to same inode 12345                 │
-│                    └── Inception.nfo    ← Portugese metadat                            │
+│                    ├── Inception.mkv    ← Hardlink to same inode 12345                 │
+│                    ├── Inception.nfo    ← Portuguese metadata                          │
 │                    └── poster.png       ← Portuguese artwork                           │
 │                                           (Portuguese metadata fetched by Jellyfin)    │
 │                                                                                        │
