@@ -1,5 +1,6 @@
-using System;
 using System.Collections.Generic;
+using System.Linq;
+using Jellyfin.Plugin.Polyglot.Helpers;
 using Jellyfin.Plugin.Polyglot.Models;
 using MediaBrowser.Model.Plugins;
 
@@ -11,16 +12,6 @@ namespace Jellyfin.Plugin.Polyglot.Configuration;
 public class PluginConfiguration : BasePluginConfiguration
 {
     /// <summary>
-    /// Default file extensions to exclude from hardlinking (metadata and images).
-    /// </summary>
-    public static readonly string[] DefaultExcludedExtensions = { ".nfo", ".jpg", ".jpeg", ".png", ".gif", ".webp", ".tbn", ".bmp" };
-
-    /// <summary>
-    /// Default directory names to exclude from mirroring.
-    /// </summary>
-    public static readonly string[] DefaultExcludedDirectories = { "extrafanart", "extrathumbs", ".trickplay", "metadata", ".actors" };
-
-    /// <summary>
     /// Initializes a new instance of the <see cref="PluginConfiguration"/> class.
     /// </summary>
     public PluginConfiguration()
@@ -28,8 +19,8 @@ public class PluginConfiguration : BasePluginConfiguration
         LanguageAlternatives = new List<LanguageAlternative>();
         UserLanguages = new List<UserLanguageConfig>();
         LdapGroupMappings = new List<LdapGroupMapping>();
-        ExcludedExtensions = new List<string>(DefaultExcludedExtensions);
-        ExcludedDirectories = new List<string>(DefaultExcludedDirectories);
+        ExcludedExtensions = FileClassifier.DefaultExcludedExtensions.ToList();
+        ExcludedDirectories = FileClassifier.DefaultExcludedDirectories.ToList();
     }
 
     /// <summary>
@@ -87,5 +78,15 @@ public class PluginConfiguration : BasePluginConfiguration
     /// These are directory names (not full paths) that will be skipped during mirroring.
     /// </summary>
     public List<string> ExcludedDirectories { get; set; }
+
+    /// <summary>
+    /// Gets the default excluded file extensions (read-only, from FileClassifier).
+    /// </summary>
+    public List<string> DefaultExcludedExtensions => FileClassifier.DefaultExcludedExtensions.ToList();
+
+    /// <summary>
+    /// Gets the default excluded directory names (read-only, from FileClassifier).
+    /// </summary>
+    public List<string> DefaultExcludedDirectories => FileClassifier.DefaultExcludedDirectories.ToList();
 }
 

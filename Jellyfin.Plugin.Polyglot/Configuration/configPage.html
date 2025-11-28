@@ -727,14 +727,19 @@
                     });
                 },
 
-                // Default exclusion values (matching the C# defaults)
-                defaultExcludedExtensions: ['.nfo', '.jpg', '.jpeg', '.png', '.gif', '.webp', '.tbn', '.bmp'],
-                defaultExcludedDirectories: ['extrafanart', 'extrathumbs', '.trickplay', 'metadata', '.actors'],
+                // Default exclusion values (fetched from server via Settings endpoint)
+                defaultExcludedExtensions: null,
+                defaultExcludedDirectories: null,
 
                 loadSettings: function() {
                     var self = this;
                     // Use built-in ApiClient method for plugin configuration
+                    // DefaultExcludedExtensions and DefaultExcludedDirectories are included in the config
                     ApiClient.getPluginConfiguration(this.pluginUniqueId).then(function(config) {
+                        // Store defaults from config (read-only properties from server)
+                        self.defaultExcludedExtensions = config.DefaultExcludedExtensions;
+                        self.defaultExcludedDirectories = config.DefaultExcludedDirectories;
+                        
                         // Load new user settings
                         document.getElementById('autoManageNewUsers').checked = config.AutoManageNewUsers || false;
                         
@@ -763,9 +768,23 @@
                 },
                 
                 resetExclusionsToDefaults: function() {
-                    document.getElementById('excludedExtensions').value = this.defaultExcludedExtensions.join('\n');
-                    document.getElementById('excludedDirectories').value = this.defaultExcludedDirectories.join('\n');
-                    Dashboard.alert('Exclusion settings reset to defaults. Click "Save Settings" to apply.');
+                    var self = this;
+                    var applyDefaults = function() {
+                        document.getElementById('excludedExtensions').value = self.defaultExcludedExtensions.join('\n');
+                        document.getElementById('excludedDirectories').value = self.defaultExcludedDirectories.join('\n');
+                        Dashboard.alert('Exclusion settings reset to defaults. Click "Save Settings" to apply.');
+                    };
+                    
+                    if (this.defaultExcludedExtensions && this.defaultExcludedDirectories) {
+                        applyDefaults();
+                    } else {
+                        // Load defaults from plugin config if not already loaded
+                        ApiClient.getPluginConfiguration(this.pluginUniqueId).then(function(config) {
+                            self.defaultExcludedExtensions = config.DefaultExcludedExtensions;
+                            self.defaultExcludedDirectories = config.DefaultExcludedDirectories;
+                            applyDefaults();
+                        });
+                    }
                 },
 
         // Actions
