@@ -44,27 +44,27 @@ public class UserCreatedConsumer : IEventConsumer<UserCreatedEventArgs>
         // First, try LDAP-based assignment if enabled
         if (config.EnableLdapIntegration && _ldapIntegrationService.IsLdapPluginAvailable())
         {
-            try
+        try
+        {
+            var languageId = await _ldapIntegrationService.DetermineLanguageFromGroupsAsync(user.Username, CancellationToken.None)
+                .ConfigureAwait(false);
+
+            if (languageId.HasValue)
             {
-                var languageId = await _ldapIntegrationService.DetermineLanguageFromGroupsAsync(user.Username, CancellationToken.None)
-                    .ConfigureAwait(false);
+                await _userLanguageService.AssignLanguageAsync(
+                    user.Id,
+                    languageId.Value,
+                    "ldap",
+                    manuallySet: false,
+                    isPluginManaged: true,
+                    CancellationToken.None).ConfigureAwait(false);
 
-                if (languageId.HasValue)
-                {
-                    await _userLanguageService.AssignLanguageAsync(
-                        user.Id,
-                        languageId.Value,
-                        "ldap",
-                        manuallySet: false,
-                        isPluginManaged: true,
-                        CancellationToken.None).ConfigureAwait(false);
-
-                    _logger.LogInformation(
-                        "Assigned language {LanguageId} to new user {Username} based on LDAP groups",
-                        languageId.Value,
-                        user.Username);
+                _logger.LogInformation(
+                    "Assigned language {LanguageId} to new user {Username} based on LDAP groups",
+                    languageId.Value,
+                    user.Username);
                     return;
-                }
+            }
 
                 _logger.LogDebug("No LDAP group match found for new user {Username}", user.Username);
             }
@@ -97,8 +97,8 @@ public class UserCreatedConsumer : IEventConsumer<UserCreatedEventArgs>
                     user.Username);
             }
             catch (System.Exception ex)
-            {
-                _logger.LogError(ex, "Failed to auto-assign language for new user {Username}", user.Username);
+        {
+            _logger.LogError(ex, "Failed to auto-assign language for new user {Username}", user.Username);
             }
         }
     }

@@ -76,27 +76,48 @@ public partial class DebugReportService : IDebugReportService
     }
 
     /// <inheritdoc />
-    public async Task<DebugReport> GenerateReportAsync(CancellationToken cancellationToken = default)
+    public async Task<DebugReport> GenerateReportAsync(DebugReportOptions? options = null, CancellationToken cancellationToken = default)
     {
+        options ??= new DebugReportOptions();
+
         var report = new DebugReport
         {
             GeneratedAt = DateTime.UtcNow,
+            Options = options,
             Environment = GetEnvironmentInfo(),
             Configuration = GetConfigurationSummary(),
-            MirrorHealth = await GetMirrorHealthAsync(cancellationToken).ConfigureAwait(false),
-            UserDistribution = GetUserDistribution(),
-            Libraries = GetLibrarySummaries(),
+            MirrorHealth = await GetMirrorHealthAsync(options, cancellationToken).ConfigureAwait(false),
+            UserDistribution = GetUserDistribution(options),
+            Libraries = GetLibrarySummaries(options),
             OtherPlugins = GetOtherPlugins(),
-            RecentLogs = GetRecentLogs()
+            RecentLogs = GetRecentLogs(options)
         };
+
+        // Add filesystem diagnostics if requested
+        if (options.IncludeFilesystemDiagnostics)
+        {
+            report.FilesystemInfo = GetFilesystemDiagnostics(options);
+        }
+
+        // Add hardlink verification if requested
+        if (options.IncludeHardlinkVerification)
+        {
+            report.HardlinkVerification = await VerifyHardlinksAsync(options, cancellationToken).ConfigureAwait(false);
+        }
+
+        // Add user details if requested
+        if (options.IncludeUserNames)
+        {
+            report.UserDetails = GetUserDetails(options);
+        }
 
         return report;
     }
 
     /// <inheritdoc />
-    public async Task<string> GenerateMarkdownReportAsync(CancellationToken cancellationToken = default)
+    public async Task<string> GenerateMarkdownReportAsync(DebugReportOptions? options = null, CancellationToken cancellationToken = default)
     {
-        var report = await GenerateReportAsync(cancellationToken).ConfigureAwait(false);
+        var report = await GenerateReportAsync(options, cancellationToken).ConfigureAwait(false);
         return FormatAsMarkdown(report);
     }
 
@@ -139,7 +160,7 @@ public partial class DebugReportService : IDebugReportService
         };
     }
 
-    private async Task<List<MirrorHealthInfo>> GetMirrorHealthAsync(CancellationToken cancellationToken)
+    private async Task<List<MirrorHealthInfo>> GetMirrorHealthAsync(DebugReportOptions options, CancellationToken cancellationToken)
     {
         var config = Plugin.Instance?.Configuration;
         if (config == null)
@@ -169,25 +190,54 @@ public partial class DebugReportService : IDebugReportService
                     ? FormatTimeAgo(mirror.LastSyncedAt.Value)
                     : "Never";
 
+                // Check if target path is writable
+                bool? targetPathWritable = null;
+                if (targetPathExists && !string.IsNullOrEmpty(mirror.TargetPath))
+                {
+                    targetPathWritable = IsPathWritable(mirror.TargetPath);
+                }
+
+                // Determine names based on options
+                var altName = options.IncludeLibraryNames ? alternative.Name : $"Alt_{altIndex}";
+                var libName = options.IncludeLibraryNames ? mirror.SourceLibraryName : $"Library_{mirrorIndex}";
+                var targetPath = options.IncludeFilePaths ? mirror.TargetPath : (targetPathExists ? "[path exists]" : "[path missing]");
+
                 results.Add(new MirrorHealthInfo
                 {
-                    AlternativeName = $"Alt_{altIndex}",
-                    SourceLibrary = $"Library_{mirrorIndex}",
+                    AlternativeName = altName,
+                    SourceLibrary = libName,
+                    TargetPath = targetPath,
                     Status = mirror.Status.ToString(),
                     LastSync = lastSync,
                     FileCount = mirror.LastSyncFileCount,
                     SourceExists = sourceExists,
                     TargetExists = targetExists,
                     TargetPathExists = targetPathExists,
-                    LastError = SanitizeErrorMessage(mirror.LastError)
+                    TargetPathWritable = targetPathWritable,
+                    LastError = options.IncludeFilePaths ? mirror.LastError : SanitizeErrorMessage(mirror.LastError)
                 });
             }
         }
 
-        return results;
+        return await Task.FromResult(results).ConfigureAwait(false);
     }
 
-    private List<UserDistributionInfo> GetUserDistribution()
+    private static bool IsPathWritable(string path)
+    {
+        try
+        {
+            var testFile = Path.Combine(path, $".polyglot_write_test_{Guid.NewGuid():N}");
+            File.WriteAllText(testFile, "test");
+            File.Delete(testFile);
+            return true;
+        }
+        catch
+        {
+            return false;
+        }
+    }
+
+    private List<UserDistributionInfo> GetUserDistribution(DebugReportOptions options)
     {
         var config = Plugin.Instance?.Configuration;
         if (config == null)
@@ -199,7 +249,7 @@ public partial class DebugReportService : IDebugReportService
 
         // Count users per alternative
         var managedUsers = config.UserLanguages.Where(u => u.IsPluginManaged).ToList();
-        
+
         // Count users with no specific alternative (default)
         var defaultCount = managedUsers.Count(u => u.SelectedAlternativeId == null);
         if (defaultCount > 0)
@@ -223,9 +273,12 @@ public partial class DebugReportService : IDebugReportService
         {
             altIndex++;
             var count = usersByAlt.GetValueOrDefault(alt.Id, 0);
+            var langName = options.IncludeLibraryNames
+                ? $"{alt.Name} ({alt.LanguageCode})"
+                : $"Alt_{altIndex} ({alt.LanguageCode})";
             distribution.Add(new UserDistributionInfo
             {
-                Language = $"Alt_{altIndex} ({alt.LanguageCode})",
+                Language = langName,
                 UserCount = count
             });
         }
@@ -244,7 +297,51 @@ public partial class DebugReportService : IDebugReportService
         return distribution;
     }
 
-    private List<LibrarySummaryInfo> GetLibrarySummaries()
+    private List<UserDetailInfo> GetUserDetails(DebugReportOptions options)
+    {
+        var config = Plugin.Instance?.Configuration;
+        if (config == null)
+        {
+            return new List<UserDetailInfo>();
+        }
+
+        var details = new List<UserDetailInfo>();
+        var altIndex = 0;
+        var altMap = config.LanguageAlternatives.ToDictionary(
+            a => a.Id,
+            a => new { Index = ++altIndex, Alt = a });
+
+        foreach (var userConfig in config.UserLanguages)
+        {
+            string language;
+            if (userConfig.SelectedAlternativeId == null)
+            {
+                language = "Default (source libraries)";
+            }
+            else if (altMap.TryGetValue(userConfig.SelectedAlternativeId.Value, out var altInfo))
+            {
+                language = options.IncludeLibraryNames
+                    ? $"{altInfo.Alt.Name} ({altInfo.Alt.LanguageCode})"
+                    : $"Alt_{altInfo.Index} ({altInfo.Alt.LanguageCode})";
+            }
+            else
+            {
+                language = "Unknown (alternative deleted?)";
+            }
+
+            details.Add(new UserDetailInfo
+            {
+                UserName = userConfig.UserId.ToString(), // UserId is used since we don't store username
+                AssignedLanguage = language,
+                IsManaged = userConfig.IsPluginManaged,
+                AssignmentSource = userConfig.ManuallySet ? "Manual" : (userConfig.SetBy ?? "Auto")
+            });
+        }
+
+        return details;
+    }
+
+    private List<LibrarySummaryInfo> GetLibrarySummaries(DebugReportOptions options)
     {
         var config = Plugin.Instance?.Configuration;
         var virtualFolders = _libraryManager.GetVirtualFolders();
@@ -274,10 +371,11 @@ public partial class DebugReportService : IDebugReportService
             var folderId = Guid.TryParse(folder.ItemId, out var id) ? id : Guid.Empty;
             var isMirror = mirrorIds.Contains(folderId);
             var metadataLang = folder.LibraryOptions?.PreferredMetadataLanguage ?? "default";
+            var libName = options.IncludeLibraryNames ? folder.Name : $"Library_{libIndex}";
 
             results.Add(new LibrarySummaryInfo
             {
-                Name = $"Library_{libIndex}",
+                Name = libName,
                 Type = folder.CollectionType?.ToString() ?? "mixed",
                 IsMirror = isMirror,
                 MetadataLanguage = metadataLang
@@ -303,15 +401,30 @@ public partial class DebugReportService : IDebugReportService
             .ToList();
     }
 
-    private static List<LogEntryInfo> GetRecentLogs()
+    private static List<LogEntryInfo> GetRecentLogs(DebugReportOptions options)
     {
         var cutoff = DateTime.UtcNow - MaxLogAge;
 
-        return LogBuffer
+        var logs = LogBuffer
             .Where(e => e.Timestamp >= cutoff)
             .OrderByDescending(e => e.Timestamp)
             .Take(100) // Limit output
             .ToList();
+
+        // If paths are not being included, sanitize the logs
+        if (!options.IncludeFilePaths)
+        {
+            foreach (var log in logs)
+            {
+                log.Message = SanitizeLogMessage(log.Message);
+                if (log.Exception != null)
+                {
+                    log.Exception = SanitizeLogMessage(log.Exception);
+                }
+            }
+        }
+
+        return logs;
     }
 
     private HashSet<Guid> GetExistingLibraryIds()
@@ -320,6 +433,305 @@ public partial class DebugReportService : IDebugReportService
             .Select(f => Guid.TryParse(f.ItemId, out var id) ? id : Guid.Empty)
             .Where(id => id != Guid.Empty)
             .ToHashSet();
+    }
+
+    private List<FilesystemDiagnostics> GetFilesystemDiagnostics(DebugReportOptions options)
+    {
+        var config = Plugin.Instance?.Configuration;
+        if (config == null)
+        {
+            return new List<FilesystemDiagnostics>();
+        }
+
+        var results = new List<FilesystemDiagnostics>();
+        var checkedPaths = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
+
+        // Check all mirror target paths
+        foreach (var alt in config.LanguageAlternatives)
+        {
+            foreach (var mirror in alt.MirroredLibraries)
+            {
+                if (string.IsNullOrEmpty(mirror.TargetPath) || checkedPaths.Contains(mirror.TargetPath))
+                {
+                    continue;
+                }
+
+                checkedPaths.Add(mirror.TargetPath);
+                results.Add(GetPathDiagnostics(mirror.TargetPath, "Mirror Target", options));
+            }
+
+            // Also check the base destination path
+            if (!string.IsNullOrEmpty(alt.DestinationBasePath) && !checkedPaths.Contains(alt.DestinationBasePath))
+            {
+                checkedPaths.Add(alt.DestinationBasePath);
+                results.Add(GetPathDiagnostics(alt.DestinationBasePath, "Destination Base", options));
+            }
+        }
+
+        return results;
+    }
+
+    private static FilesystemDiagnostics GetPathDiagnostics(string path, string pathType, DebugReportOptions options)
+    {
+        var diag = new FilesystemDiagnostics
+        {
+            Path = options.IncludeFilePaths ? path : $"[{pathType.ToLowerInvariant().Replace(" ", "_")}]",
+            PathType = pathType,
+            Exists = Directory.Exists(path)
+        };
+
+        if (!diag.Exists)
+        {
+            return diag;
+        }
+
+        try
+        {
+            // Get drive info for disk space
+            var driveInfo = new DriveInfo(Path.GetPathRoot(path) ?? path);
+            if (driveInfo.IsReady)
+            {
+                diag.TotalSpaceBytes = driveInfo.TotalSize;
+                diag.AvailableSpaceBytes = driveInfo.AvailableFreeSpace;
+                diag.TotalSpace = FormatBytes(driveInfo.TotalSize);
+                diag.AvailableSpace = FormatBytes(driveInfo.AvailableFreeSpace);
+                diag.FilesystemType = driveInfo.DriveFormat;
+
+                // Check if hardlinks are supported (NTFS, ext4, etc. support them; FAT32 doesn't)
+                var fsType = driveInfo.DriveFormat.ToUpperInvariant();
+                diag.HardlinksSupported = fsType switch
+                {
+                    "NTFS" => true,
+                    "EXT4" => true,
+                    "EXT3" => true,
+                    "EXT2" => true,
+                    "XFS" => true,
+                    "BTRFS" => true,
+                    "ZFS" => true,
+                    "APFS" => true,
+                    "HFS+" => true,
+                    "FAT32" => false,
+                    "FAT" => false,
+                    "EXFAT" => false,
+                    _ => null // Unknown
+                };
+            }
+        }
+        catch
+        {
+            // Ignore errors getting drive info
+        }
+
+        return diag;
+    }
+
+    private async Task<HardlinkVerification?> VerifyHardlinksAsync(DebugReportOptions options, CancellationToken cancellationToken)
+    {
+        var config = Plugin.Instance?.Configuration;
+        if (config == null)
+        {
+            return null;
+        }
+
+        var verification = new HardlinkVerification();
+        var samples = new List<HardlinkSample>();
+
+        // Find some files in mirror directories to verify
+        foreach (var alt in config.LanguageAlternatives)
+        {
+            foreach (var mirror in alt.MirroredLibraries)
+            {
+                if (string.IsNullOrEmpty(mirror.TargetPath) || !Directory.Exists(mirror.TargetPath))
+                {
+                    continue;
+                }
+
+                cancellationToken.ThrowIfCancellationRequested();
+
+                try
+                {
+                    // Get up to 3 sample files from this mirror
+                    var files = Directory.EnumerateFiles(mirror.TargetPath, "*", SearchOption.AllDirectories)
+                        .Where(f => !f.EndsWith(".nfo", StringComparison.OrdinalIgnoreCase) &&
+                                    !f.EndsWith(".jpg", StringComparison.OrdinalIgnoreCase) &&
+                                    !f.EndsWith(".png", StringComparison.OrdinalIgnoreCase))
+                        .Take(3);
+
+                    foreach (var file in files)
+                    {
+                        var sample = VerifyHardlink(file, options);
+                        samples.Add(sample);
+
+                        if (samples.Count >= 10) // Max 10 samples total
+                        {
+                            break;
+                        }
+                    }
+                }
+                catch
+                {
+                    // Ignore errors enumerating files
+                }
+
+                if (samples.Count >= 10)
+                {
+                    break;
+                }
+            }
+
+            if (samples.Count >= 10)
+            {
+                break;
+            }
+        }
+
+        verification.Samples = samples;
+        verification.SamplesChecked = samples.Count;
+        verification.ValidHardlinks = samples.Count(s => s.IsValid);
+        verification.BrokenHardlinks = samples.Count(s => !s.IsValid && s.Error == null);
+
+        if (samples.Count == 0)
+        {
+            verification.Success = true;
+            verification.Message = "No mirror files found to verify";
+        }
+        else if (verification.ValidHardlinks == samples.Count)
+        {
+            verification.Success = true;
+            verification.Message = $"All {samples.Count} sampled files are valid hardlinks";
+        }
+        else if (verification.ValidHardlinks > 0)
+        {
+            verification.Success = false;
+            verification.Message = $"{verification.ValidHardlinks}/{samples.Count} files are valid hardlinks, {verification.BrokenHardlinks} appear to be copies";
+        }
+        else
+        {
+            verification.Success = false;
+            verification.Message = "No valid hardlinks found - files may be copies instead of hardlinks";
+        }
+
+        return await Task.FromResult(verification).ConfigureAwait(false);
+    }
+
+    private static HardlinkSample VerifyHardlink(string filePath, DebugReportOptions options)
+    {
+        var sample = new HardlinkSample
+        {
+            FilePath = options.IncludeFilePaths ? filePath : $"[file: {Path.GetExtension(filePath)}]"
+        };
+
+        try
+        {
+            var fileInfo = new FileInfo(filePath);
+            if (!fileInfo.Exists)
+            {
+                sample.Error = "File not found";
+                return sample;
+            }
+
+            // On Unix, we can check the link count
+            // On Windows, we need to use platform-specific APIs
+            if (RuntimeInformation.IsOSPlatform(OSPlatform.Windows))
+            {
+                sample.LinkCount = GetWindowsHardlinkCount(filePath);
+            }
+            else
+            {
+                sample.LinkCount = GetUnixHardlinkCount(filePath);
+            }
+
+            sample.IsValid = sample.LinkCount > 1;
+        }
+        catch (Exception ex)
+        {
+            sample.Error = ex.Message;
+        }
+
+        return sample;
+    }
+
+    private static int GetUnixHardlinkCount(string filePath)
+    {
+        // On Unix/Linux/macOS, we can use the stat command to get link count
+        // This is a simple approach that works across platforms without Mono.Unix
+        try
+        {
+            var process = new System.Diagnostics.Process
+            {
+                StartInfo = new System.Diagnostics.ProcessStartInfo
+                {
+                    FileName = "stat",
+                    Arguments = RuntimeInformation.IsOSPlatform(OSPlatform.OSX)
+                        ? $"-f %l \"{filePath}\""  // macOS format
+                        : $"-c %h \"{filePath}\"", // Linux format
+                    RedirectStandardOutput = true,
+                    UseShellExecute = false,
+                    CreateNoWindow = true
+                }
+            };
+            process.Start();
+            var output = process.StandardOutput.ReadToEnd().Trim();
+            process.WaitForExit();
+
+            if (int.TryParse(output, out var linkCount))
+            {
+                return linkCount;
+            }
+        }
+        catch
+        {
+            // Ignore errors
+        }
+
+        return 1; // Assume single link if we can't check
+    }
+
+    private static int GetWindowsHardlinkCount(string filePath)
+    {
+        // On Windows, getting accurate link count requires P/Invoke to GetFileInformationByHandle
+        // For simplicity, we'll use fsutil which requires admin rights, or just return unknown
+        try
+        {
+            var process = new System.Diagnostics.Process
+            {
+                StartInfo = new System.Diagnostics.ProcessStartInfo
+                {
+                    FileName = "fsutil",
+                    Arguments = $"hardlink list \"{filePath}\"",
+                    RedirectStandardOutput = true,
+                    UseShellExecute = false,
+                    CreateNoWindow = true
+                }
+            };
+            process.Start();
+            var output = process.StandardOutput.ReadToEnd();
+            process.WaitForExit();
+
+            // Count the lines (each line is a hardlink path)
+            var lines = output.Split('\n', StringSplitOptions.RemoveEmptyEntries);
+            return lines.Length > 0 ? lines.Length : 1;
+        }
+        catch
+        {
+            // fsutil requires admin rights, fallback to assuming it's a hardlink if file exists
+            return new FileInfo(filePath).Exists ? 2 : 0;
+        }
+    }
+
+    private static string FormatBytes(long bytes)
+    {
+        string[] suffixes = { "B", "KB", "MB", "GB", "TB" };
+        int suffixIndex = 0;
+        double size = bytes;
+
+        while (size >= 1024 && suffixIndex < suffixes.Length - 1)
+        {
+            size /= 1024;
+            suffixIndex++;
+        }
+
+        return $"{size:F1} {suffixes[suffixIndex]}";
     }
 
     private static string FormatTimeAgo(DateTime time)
@@ -416,8 +828,18 @@ public partial class DebugReportService : IDebugReportService
         if (report.MirrorHealth.Count > 0)
         {
             sb.AppendLine("## Mirror Health");
-            sb.AppendLine("| Alternative | Source | Status | Last Sync | Files | Source? | Target? | Path? | Error |");
-            sb.AppendLine("|-------------|--------|--------|-----------|-------|---------|---------|-------|-------|");
+
+            // Include target path column if paths are included
+            if (report.Options.IncludeFilePaths)
+            {
+                sb.AppendLine("| Alternative | Source | Target Path | Status | Last Sync | Files | Src? | Tgt? | Path? | Writable? | Error |");
+                sb.AppendLine("|-------------|--------|-------------|--------|-----------|-------|------|------|-------|-----------|-------|");
+            }
+            else
+            {
+                sb.AppendLine("| Alternative | Source | Status | Last Sync | Files | Src? | Tgt? | Path? | Writable? | Error |");
+                sb.AppendLine("|-------------|--------|--------|-----------|-------|------|------|-------|-----------|-------|");
+            }
 
             foreach (var mirror in report.MirrorHealth)
             {
@@ -429,7 +851,75 @@ public partial class DebugReportService : IDebugReportService
                     _ => "○"
                 };
 
-                sb.AppendLine($"| {mirror.AlternativeName} | {mirror.SourceLibrary} | {statusIcon} {mirror.Status} | {mirror.LastSync} | {mirror.FileCount?.ToString() ?? "-"} | {(mirror.SourceExists ? "✓" : "✗")} | {(mirror.TargetExists ? "✓" : "✗")} | {(mirror.TargetPathExists ? "✓" : "✗")} | {mirror.LastError ?? "-"} |");
+                var writable = mirror.TargetPathWritable switch
+                {
+                    true => "✓",
+                    false => "✗",
+                    null => "-"
+                };
+
+                if (report.Options.IncludeFilePaths)
+                {
+                    sb.AppendLine($"| {mirror.AlternativeName} | {mirror.SourceLibrary} | {mirror.TargetPath ?? "-"} | {statusIcon} {mirror.Status} | {mirror.LastSync} | {mirror.FileCount?.ToString() ?? "-"} | {(mirror.SourceExists ? "✓" : "✗")} | {(mirror.TargetExists ? "✓" : "✗")} | {(mirror.TargetPathExists ? "✓" : "✗")} | {writable} | {mirror.LastError ?? "-"} |");
+                }
+                else
+                {
+                    sb.AppendLine($"| {mirror.AlternativeName} | {mirror.SourceLibrary} | {statusIcon} {mirror.Status} | {mirror.LastSync} | {mirror.FileCount?.ToString() ?? "-"} | {(mirror.SourceExists ? "✓" : "✗")} | {(mirror.TargetExists ? "✓" : "✗")} | {(mirror.TargetPathExists ? "✓" : "✗")} | {writable} | {mirror.LastError ?? "-"} |");
+                }
+            }
+
+            sb.AppendLine();
+        }
+
+        // Filesystem Diagnostics
+        if (report.FilesystemInfo.Count > 0)
+        {
+            sb.AppendLine("## Filesystem Diagnostics");
+            sb.AppendLine("| Path | Type | Exists | Filesystem | Total | Available | Hardlinks? |");
+            sb.AppendLine("|------|------|--------|------------|-------|-----------|------------|");
+
+            foreach (var fs in report.FilesystemInfo)
+            {
+                var hardlinks = fs.HardlinksSupported switch
+                {
+                    true => "✓ Yes",
+                    false => "✗ No",
+                    null => "Unknown"
+                };
+
+                sb.AppendLine($"| {fs.Path} | {fs.PathType} | {(fs.Exists ? "✓" : "✗")} | {fs.FilesystemType ?? "-"} | {fs.TotalSpace ?? "-"} | {fs.AvailableSpace ?? "-"} | {hardlinks} |");
+            }
+
+            sb.AppendLine();
+        }
+
+        // Hardlink Verification
+        if (report.HardlinkVerification != null)
+        {
+            sb.AppendLine("## Hardlink Verification");
+            var hl = report.HardlinkVerification;
+            sb.AppendLine($"- **Status:** {(hl.Success ? "✓ OK" : "✗ Issues Found")}");
+            sb.AppendLine($"- **Message:** {hl.Message}");
+            sb.AppendLine($"- **Samples Checked:** {hl.SamplesChecked}");
+            sb.AppendLine($"- **Valid Hardlinks:** {hl.ValidHardlinks}");
+            sb.AppendLine($"- **Broken/Copies:** {hl.BrokenHardlinks}");
+
+            if (hl.Samples.Count > 0)
+            {
+                sb.AppendLine();
+                sb.AppendLine("<details>");
+                sb.AppendLine("<summary>Sample Details</summary>");
+                sb.AppendLine();
+                sb.AppendLine("| File | Valid | Link Count | Error |");
+                sb.AppendLine("|------|-------|------------|-------|");
+
+                foreach (var sample in hl.Samples)
+                {
+                    sb.AppendLine($"| {sample.FilePath} | {(sample.IsValid ? "✓" : "✗")} | {sample.LinkCount} | {sample.Error ?? "-"} |");
+                }
+
+                sb.AppendLine();
+                sb.AppendLine("</details>");
             }
 
             sb.AppendLine();
@@ -442,6 +932,21 @@ public partial class DebugReportService : IDebugReportService
             foreach (var dist in report.UserDistribution)
             {
                 sb.AppendLine($"- {dist.Language}: {dist.UserCount} users");
+            }
+
+            sb.AppendLine();
+        }
+
+        // User Details (if requested)
+        if (report.UserDetails != null && report.UserDetails.Count > 0)
+        {
+            sb.AppendLine("## User Details");
+            sb.AppendLine("| User ID | Language | Managed | Assignment |");
+            sb.AppendLine("|---------|----------|---------|------------|");
+
+            foreach (var user in report.UserDetails)
+            {
+                sb.AppendLine($"| {user.UserName} | {user.AssignedLanguage} | {(user.IsManaged ? "✓" : "✗")} | {user.AssignmentSource} |");
             }
 
             sb.AppendLine();

@@ -652,20 +652,39 @@ public class PolyglotController : ControllerBase
     /// Gets a debug report for troubleshooting.
     /// </summary>
     /// <param name="format">Output format: 'json' or 'markdown'. Default is 'markdown'.</param>
+    /// <param name="includeFilePaths">Include actual file paths (default: false for privacy).</param>
+    /// <param name="includeLibraryNames">Include actual library names (default: false for privacy).</param>
+    /// <param name="includeUserNames">Include actual user names (default: false for privacy).</param>
+    /// <param name="includeFilesystemDiagnostics">Include filesystem diagnostics like disk space (default: true).</param>
+    /// <param name="includeHardlinkVerification">Include hardlink verification tests (default: true).</param>
     /// <param name="cancellationToken">Cancellation token.</param>
     [HttpGet("DebugReport")]
     [ProducesResponseType(StatusCodes.Status200OK)]
     public async Task<IActionResult> GetDebugReport(
         [FromQuery] string format = "markdown",
+        [FromQuery] bool includeFilePaths = false,
+        [FromQuery] bool includeLibraryNames = false,
+        [FromQuery] bool includeUserNames = false,
+        [FromQuery] bool includeFilesystemDiagnostics = true,
+        [FromQuery] bool includeHardlinkVerification = true,
         CancellationToken cancellationToken = default)
     {
+        var options = new DebugReportOptions
+        {
+            IncludeFilePaths = includeFilePaths,
+            IncludeLibraryNames = includeLibraryNames,
+            IncludeUserNames = includeUserNames,
+            IncludeFilesystemDiagnostics = includeFilesystemDiagnostics,
+            IncludeHardlinkVerification = includeHardlinkVerification
+        };
+
         if (string.Equals(format, "json", StringComparison.OrdinalIgnoreCase))
         {
-            var report = await _debugReportService.GenerateReportAsync(cancellationToken);
+            var report = await _debugReportService.GenerateReportAsync(options, cancellationToken);
             return Ok(report);
         }
 
-        var markdown = await _debugReportService.GenerateMarkdownReportAsync(cancellationToken);
+        var markdown = await _debugReportService.GenerateMarkdownReportAsync(options, cancellationToken);
         return Ok(new DebugReportResponse { Markdown = markdown });
     }
 
