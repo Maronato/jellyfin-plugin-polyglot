@@ -78,7 +78,7 @@ public class Plugin : BasePlugin<PluginConfiguration>, IHasWebPages
     /// </summary>
     public new void SaveConfiguration()
     {
-        SaveConfiguration(Configuration);
+        UpdateConfiguration(Configuration);
     }
 
     /// <inheritdoc />
