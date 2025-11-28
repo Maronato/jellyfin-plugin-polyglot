@@ -6,6 +6,7 @@ using MediaBrowser.Controller;
 using MediaBrowser.Controller.Events;
 using MediaBrowser.Controller.Library;
 using MediaBrowser.Controller.Plugins;
+using MediaBrowser.Model.Tasks;
 using Microsoft.Extensions.DependencyInjection;
 
 namespace Jellyfin.Plugin.Polyglot;
@@ -31,6 +32,10 @@ public class PluginServiceRegistrator : IPluginServiceRegistrator
 
         // Hosted service for library change monitoring
         serviceCollection.AddHostedService<LibraryChangedConsumer>();
+
+        // Scheduled tasks
+        serviceCollection.AddSingleton<IScheduledTask, MirrorSyncTask>();
+        serviceCollection.AddSingleton<IScheduledTask, UserLanguageSyncTask>();
 
         // Post-scan task - triggers mirror sync after library scans
         serviceCollection.AddSingleton<ILibraryPostScanTask, MirrorPostScanTask>();
