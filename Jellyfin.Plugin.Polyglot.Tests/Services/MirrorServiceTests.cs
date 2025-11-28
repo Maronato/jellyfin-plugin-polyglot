@@ -260,6 +260,70 @@ public class MirrorServiceFileOperationTests : IDisposable
     }
 
     [Fact]
+    public async Task SyncMirrorAsync_FileModifiedInSource_RecreatesHardlink()
+    {
+        // Arrange
+        var sourceDir = Path.Combine(_tempDir, "source");
+        var targetDir = Path.Combine(_tempDir, "target");
+        Directory.CreateDirectory(sourceDir);
+        Directory.CreateDirectory(targetDir);
+
+        var fileName = "updated.srt";
+
+        // 1. Initial State: Source and Target have SAME content (representing a synced hardlink)
+        var initialContent = "subtitle version 1";
+        var sourceFile = Path.Combine(sourceDir, fileName);
+        var targetFile = Path.Combine(targetDir, fileName);
+
+        File.WriteAllText(sourceFile, initialContent);
+        File.WriteAllText(targetFile, initialContent);
+
+        // Ensure timestamps match exactly to simulate a hardlink
+        var initialTime = DateTime.UtcNow.AddHours(-1);
+        File.SetLastWriteTimeUtc(sourceFile, initialTime);
+        File.SetLastWriteTimeUtc(targetFile, initialTime);
+
+        var sourceId = Guid.NewGuid();
+        _libraryManagerMock.Setup(m => m.GetVirtualFolders()).Returns(new List<VirtualFolderInfo>
+        {
+            new() { ItemId = sourceId.ToString(), Name = "Movies", Locations = new[] { sourceDir } }
+        });
+
+        var mirror = new LibraryMirror
+        {
+            Id = Guid.NewGuid(),
+            SourceLibraryId = sourceId,
+            SourceLibraryName = "Movies",
+            TargetPath = targetDir,
+            Status = SyncStatus.Synced
+        };
+
+        // 2. Scenario A: Timestamp change ONLY (same content)
+        // This simulates a 'touch' or metadata update
+        File.SetLastWriteTimeUtc(sourceFile, DateTime.UtcNow);
+        
+        // Act A
+        await _service.SyncMirrorAsync(mirror);
+
+        // Assert A: Should still be synced (timestamps match now)
+        // Since we can't easily check if it was re-linked vs just updated, we verify existence
+        File.Exists(targetFile).Should().BeTrue("Target should exist after timestamp update");
+        
+        // 3. Scenario B: Content change (different size/content)
+        // This simulates a file replacement
+        var newContent = "subtitle version 2 - significantly updated content with different length";
+        File.WriteAllText(sourceFile, newContent);
+        // Note: WriteAllText updates timestamp automatically
+
+        // Act B
+        await _service.SyncMirrorAsync(mirror);
+
+        // Assert B
+        File.Exists(targetFile).Should().BeTrue("Target file should exist");
+        File.ReadAllText(targetFile).Should().Be(newContent, "Mirror content should be updated to match source");
+    }
+
+    [Fact]
     public async Task SyncMirrorAsync_NestedDirectories_PreservesStructure()
     {
         // Arrange

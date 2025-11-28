@@ -147,26 +147,62 @@ public class MirrorService : IMirrorService
             }
 
             // Build file sets
-            var sourceFiles = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
+            var sourceFiles = new Dictionary<string, FileSignature>(StringComparer.OrdinalIgnoreCase);
             foreach (var sourcePath in sourcePaths)
             {
-                foreach (var file in EnumerateFilesForMirroring(sourcePath))
+                foreach (var (file, signature) in EnumerateFilesForMirroring(sourcePath))
                 {
                     var relativePath = Path.GetRelativePath(sourcePath, file);
-                    sourceFiles.Add(relativePath);
+                    sourceFiles[relativePath] = signature;
                 }
             }
 
-            var targetFiles = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
-            foreach (var file in EnumerateFilesForMirroring(mirror.TargetPath))
+            var targetFiles = new Dictionary<string, FileSignature>(StringComparer.OrdinalIgnoreCase);
+            foreach (var (file, signature) in EnumerateFilesForMirroring(mirror.TargetPath))
             {
                 var relativePath = Path.GetRelativePath(mirror.TargetPath, file);
-                targetFiles.Add(relativePath);
+                targetFiles[relativePath] = signature;
             }
 
             // Calculate differences
-            var filesToAdd = sourceFiles.Except(targetFiles).ToList();
-            var filesToRemove = targetFiles.Except(sourceFiles).ToList();
+            var filesToAdd = new List<string>();
+            var filesToRemove = new List<string>();
+
+            // Check for new or modified files
+            foreach (var kvp in sourceFiles)
+            {
+                var relativePath = kvp.Key;
+                var sourceSig = kvp.Value;
+
+                if (targetFiles.TryGetValue(relativePath, out var targetSig))
+                {
+                    // File exists in both - check if modified
+                    // We check Size and LastWriteTime
+                    if (sourceSig.Size != targetSig.Size || sourceSig.ModifiedTicks != targetSig.ModifiedTicks)
+                    {
+                        _logger.LogDebug("File modified: {File} (Source: {SourceSize}/{SourceTime}, Target: {TargetSize}/{TargetTime})",
+                            relativePath, sourceSig.Size, sourceSig.ModifiedTicks, targetSig.Size, targetSig.ModifiedTicks);
+                        
+                        // Treat as remove + add to update the hardlink
+                        filesToRemove.Add(relativePath);
+                        filesToAdd.Add(relativePath);
+                    }
+                }
+                else
+                {
+                    // New file
+                    filesToAdd.Add(relativePath);
+                }
+            }
+
+            // Check for deleted files (exists in target but not source)
+            foreach (var kvp in targetFiles)
+            {
+                if (!sourceFiles.ContainsKey(kvp.Key))
+                {
+                    filesToRemove.Add(kvp.Key);
+                }
+            }
 
             var totalOperations = filesToAdd.Count + filesToRemove.Count;
             var completedOperations = 0;
@@ -537,7 +573,7 @@ public class MirrorService : IMirrorService
     {
         int fileCount = 0;
 
-        foreach (var sourceFile in EnumerateFilesForMirroring(sourcePath))
+        foreach (var (sourceFile, _) in EnumerateFilesForMirroring(sourcePath))
         {
             cancellationToken.ThrowIfCancellationRequested();
 
@@ -554,9 +590,9 @@ public class MirrorService : IMirrorService
     }
 
     /// <summary>
-    /// Enumerates files that should be mirrored (excludes metadata).
+    /// Enumerates files that should be mirrored (excludes metadata) and returns their signatures.
     /// </summary>
-    private IEnumerable<string> EnumerateFilesForMirroring(string path)
+    private IEnumerable<(string Path, FileSignature Signature)> EnumerateFilesForMirroring(string path)
     {
         if (!Directory.Exists(path))
         {
@@ -578,10 +614,12 @@ public class MirrorService : IMirrorService
             }
         }
 
-        foreach (var file in Directory.EnumerateFiles(path, "*", SearchOption.AllDirectories))
+        // Use DirectoryInfo to get file metadata efficiently
+        var dirInfo = new DirectoryInfo(path);
+        foreach (var fileInfo in dirInfo.EnumerateFiles("*", SearchOption.AllDirectories))
         {
             // Check if file is within an excluded directory
-            var fileDir = Path.GetDirectoryName(file);
+            var fileDir = fileInfo.DirectoryName;
             var isInExcludedDir = false;
 
             if (!string.IsNullOrEmpty(fileDir))
@@ -596,11 +634,27 @@ public class MirrorService : IMirrorService
                 }
             }
 
-            if (!isInExcludedDir && FileClassifier.ShouldHardlink(file, excludedExtensions, excludedDirectoryNames))
+            if (!isInExcludedDir && FileClassifier.ShouldHardlink(fileInfo.FullName, excludedExtensions, excludedDirectoryNames))
             {
-                yield return file;
+                yield return (fileInfo.FullName, new FileSignature(fileInfo.Length, fileInfo.LastWriteTimeUtc.Ticks));
             }
         }
+    }
+
+    /// <summary>
+    /// Represents a file's unique signature based on size and modification time.
+    /// used to detect if a file has been modified even if the name is the same.
+    /// </summary>
+    private readonly struct FileSignature
+    {
+        public FileSignature(long size, long modifiedTicks)
+        {
+            Size = size;
+            ModifiedTicks = modifiedTicks;
+        }
+
+        public long Size { get; }
+        public long ModifiedTicks { get; }
     }
 
     /// <summary>
@@ -783,4 +837,5 @@ public class MirrorService : IMirrorService
         Plugin.Instance?.SaveConfiguration();
     }
 }
+
 
