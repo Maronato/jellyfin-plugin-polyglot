@@ -12,6 +12,7 @@ using Jellyfin.Plugin.Polyglot.Models;
 using MediaBrowser.Common;
 using MediaBrowser.Common.Plugins;
 using MediaBrowser.Controller.Library;
+using MediaBrowser.Controller.Entities;
 using Microsoft.Extensions.Logging;
 
 namespace Jellyfin.Plugin.Polyglot.Services;
@@ -23,6 +24,7 @@ public partial class DebugReportService : IDebugReportService
 {
     private readonly IApplicationHost _applicationHost;
     private readonly ILibraryManager _libraryManager;
+    private readonly IUserManager _userManager;
     private readonly ILogger<DebugReportService> _logger;
 
     // Static circular buffer for recent logs (accessible across the plugin)
@@ -62,10 +64,12 @@ public partial class DebugReportService : IDebugReportService
     public DebugReportService(
         IApplicationHost applicationHost,
         ILibraryManager libraryManager,
+        IUserManager userManager,
         ILogger<DebugReportService> logger)
     {
         _applicationHost = applicationHost;
         _libraryManager = libraryManager;
+        _userManager = userManager;
         _logger = logger;
     }
 
@@ -170,6 +174,7 @@ public partial class DebugReportService : IDebugReportService
 
         var results = new List<MirrorHealthInfo>();
         var existingLibraryIds = GetExistingLibraryIds();
+        var virtualFolders = _libraryManager.GetVirtualFolders();
         var altIndex = 0;
 
         foreach (var alternative in config.LanguageAlternatives)
@@ -186,6 +191,13 @@ public partial class DebugReportService : IDebugReportService
                 var targetExists = mirror.TargetLibraryId.HasValue && existingLibraryIds.Contains(mirror.TargetLibraryId.Value);
                 var targetPathExists = !string.IsNullOrEmpty(mirror.TargetPath) && Directory.Exists(mirror.TargetPath);
 
+                // Get source library paths
+                var sourceFolder = virtualFolders.FirstOrDefault(f =>
+                    Guid.TryParse(f.ItemId, out var id) && id == mirror.SourceLibraryId);
+                var sourcePaths = sourceFolder?.Locations ?? Array.Empty<string>();
+                var sourcePathStr = sourcePaths.Length > 0 ? string.Join("; ", sourcePaths) : null;
+                var sourcePathExists = sourcePaths.Length > 0 && sourcePaths.All(Directory.Exists);
+
                 var lastSync = mirror.LastSyncedAt.HasValue
                     ? FormatTimeAgo(mirror.LastSyncedAt.Value)
                     : "Never";
@@ -201,11 +213,14 @@ public partial class DebugReportService : IDebugReportService
                 var altName = options.IncludeLibraryNames ? alternative.Name : $"Alt_{altIndex}";
                 var libName = options.IncludeLibraryNames ? mirror.SourceLibraryName : $"Library_{mirrorIndex}";
                 var targetPath = options.IncludeFilePaths ? mirror.TargetPath : (targetPathExists ? "[path exists]" : "[path missing]");
+                var sourcePath = options.IncludeFilePaths ? sourcePathStr : (sourcePathExists ? "[path exists]" : "[path missing/unknown]");
 
                 results.Add(new MirrorHealthInfo
                 {
                     AlternativeName = altName,
                     SourceLibrary = libName,
+                    SourcePath = sourcePath,
+                    SourcePathExists = sourcePaths.Length > 0 ? sourcePathExists : null,
                     TargetPath = targetPath,
                     Status = mirror.Status.ToString(),
                     LastSync = lastSync,
@@ -311,6 +326,21 @@ public partial class DebugReportService : IDebugReportService
             a => a.Id,
             a => new { Index = ++altIndex, Alt = a });
 
+        // Build a lookup of user IDs to usernames
+        var userLookup = new Dictionary<Guid, string>();
+        try
+        {
+            var users = _userManager.Users;
+            foreach (var user in users)
+            {
+                userLookup[user.Id] = user.Username;
+            }
+        }
+        catch
+        {
+            // If we can't get users, we'll fall back to showing IDs
+        }
+
         foreach (var userConfig in config.UserLanguages)
         {
             string language;
@@ -329,9 +359,20 @@ public partial class DebugReportService : IDebugReportService
                 language = "Unknown (alternative deleted?)";
             }
 
+            // Get username from lookup, fall back to ID if not found
+            var userName = userLookup.TryGetValue(userConfig.UserId, out var name)
+                ? name
+                : $"[Unknown: {userConfig.UserId}]";
+
+            // Anonymize username if not including user names
+            if (!options.IncludeUserNames)
+            {
+                userName = $"User_{details.Count + 1}";
+            }
+
             details.Add(new UserDetailInfo
             {
-                UserName = userConfig.UserId.ToString(), // UserId is used since we don't store username
+                UserName = userName,
                 AssignedLanguage = language,
                 IsManaged = userConfig.IsPluginManaged,
                 AssignmentSource = userConfig.ManuallySet ? "Manual" : (userConfig.SetBy ?? "Auto")
@@ -445,6 +486,33 @@ public partial class DebugReportService : IDebugReportService
 
         var results = new List<FilesystemDiagnostics>();
         var checkedPaths = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
+        var virtualFolders = _libraryManager.GetVirtualFolders();
+
+        // Check source library paths first
+        foreach (var alt in config.LanguageAlternatives)
+        {
+            foreach (var mirror in alt.MirroredLibraries)
+            {
+                // Get source library paths
+                var sourceFolder = virtualFolders.FirstOrDefault(f =>
+                    Guid.TryParse(f.ItemId, out var id) && id == mirror.SourceLibraryId);
+
+                if (sourceFolder?.Locations != null)
+                {
+                    foreach (var sourcePath in sourceFolder.Locations)
+                    {
+                        if (string.IsNullOrEmpty(sourcePath) || checkedPaths.Contains(sourcePath))
+                        {
+                            continue;
+                        }
+
+                        checkedPaths.Add(sourcePath);
+                        var libName = options.IncludeLibraryNames ? mirror.SourceLibraryName : "Source Library";
+                        results.Add(GetPathDiagnostics(sourcePath, $"Source ({libName})", options));
+                    }
+                }
+            }
+        }
 
         // Check all mirror target paths
         foreach (var alt in config.LanguageAlternatives)
@@ -457,7 +525,8 @@ public partial class DebugReportService : IDebugReportService
                 }
 
                 checkedPaths.Add(mirror.TargetPath);
-                results.Add(GetPathDiagnostics(mirror.TargetPath, "Mirror Target", options));
+                var libName = options.IncludeLibraryNames ? mirror.SourceLibraryName : "Mirror";
+                results.Add(GetPathDiagnostics(mirror.TargetPath, $"Target ({libName})", options));
             }
 
             // Also check the base destination path
@@ -829,16 +898,16 @@ public partial class DebugReportService : IDebugReportService
         {
             sb.AppendLine("## Mirror Health");
 
-            // Include target path column if paths are included
+            // Include path columns if paths are included
             if (report.Options.IncludeFilePaths)
             {
-                sb.AppendLine("| Alternative | Source | Target Path | Status | Last Sync | Files | Src? | Tgt? | Path? | Writable? | Error |");
-                sb.AppendLine("|-------------|--------|-------------|--------|-----------|-------|------|------|-------|-----------|-------|");
+                sb.AppendLine("| Alternative | Source | Source Path | Target Path | Status | Last Sync | Files | SrcLib? | SrcPath? | TgtLib? | TgtPath? | Writable? | Error |");
+                sb.AppendLine("|-------------|--------|-------------|-------------|--------|-----------|-------|---------|----------|---------|----------|-----------|-------|");
             }
             else
             {
-                sb.AppendLine("| Alternative | Source | Status | Last Sync | Files | Src? | Tgt? | Path? | Writable? | Error |");
-                sb.AppendLine("|-------------|--------|--------|-----------|-------|------|------|-------|-----------|-------|");
+                sb.AppendLine("| Alternative | Source | Status | Last Sync | Files | SrcLib? | SrcPath? | TgtLib? | TgtPath? | Writable? | Error |");
+                sb.AppendLine("|-------------|--------|--------|-----------|-------|---------|----------|---------|----------|-----------|-------|");
             }
 
             foreach (var mirror in report.MirrorHealth)
@@ -858,13 +927,20 @@ public partial class DebugReportService : IDebugReportService
                     null => "-"
                 };
 
+                var srcPathExists = mirror.SourcePathExists switch
+                {
+                    true => "✓",
+                    false => "✗",
+                    null => "-"
+                };
+
                 if (report.Options.IncludeFilePaths)
                 {
-                    sb.AppendLine($"| {mirror.AlternativeName} | {mirror.SourceLibrary} | {mirror.TargetPath ?? "-"} | {statusIcon} {mirror.Status} | {mirror.LastSync} | {mirror.FileCount?.ToString() ?? "-"} | {(mirror.SourceExists ? "✓" : "✗")} | {(mirror.TargetExists ? "✓" : "✗")} | {(mirror.TargetPathExists ? "✓" : "✗")} | {writable} | {mirror.LastError ?? "-"} |");
+                    sb.AppendLine($"| {mirror.AlternativeName} | {mirror.SourceLibrary} | {mirror.SourcePath ?? "-"} | {mirror.TargetPath ?? "-"} | {statusIcon} {mirror.Status} | {mirror.LastSync} | {mirror.FileCount?.ToString() ?? "-"} | {(mirror.SourceExists ? "✓" : "✗")} | {srcPathExists} | {(mirror.TargetExists ? "✓" : "✗")} | {(mirror.TargetPathExists ? "✓" : "✗")} | {writable} | {mirror.LastError ?? "-"} |");
                 }
                 else
                 {
-                    sb.AppendLine($"| {mirror.AlternativeName} | {mirror.SourceLibrary} | {statusIcon} {mirror.Status} | {mirror.LastSync} | {mirror.FileCount?.ToString() ?? "-"} | {(mirror.SourceExists ? "✓" : "✗")} | {(mirror.TargetExists ? "✓" : "✗")} | {(mirror.TargetPathExists ? "✓" : "✗")} | {writable} | {mirror.LastError ?? "-"} |");
+                    sb.AppendLine($"| {mirror.AlternativeName} | {mirror.SourceLibrary} | {statusIcon} {mirror.Status} | {mirror.LastSync} | {mirror.FileCount?.ToString() ?? "-"} | {(mirror.SourceExists ? "✓" : "✗")} | {srcPathExists} | {(mirror.TargetExists ? "✓" : "✗")} | {(mirror.TargetPathExists ? "✓" : "✗")} | {writable} | {mirror.LastError ?? "-"} |");
                 }
             }
 

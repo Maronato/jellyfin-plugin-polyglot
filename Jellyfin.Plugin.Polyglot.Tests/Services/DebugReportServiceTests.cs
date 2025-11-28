@@ -1,4 +1,5 @@
 using FluentAssertions;
+using Jellyfin.Data.Entities;
 using Jellyfin.Plugin.Polyglot.Configuration;
 using Jellyfin.Plugin.Polyglot.Models;
 using Jellyfin.Plugin.Polyglot.Services;
@@ -21,6 +22,7 @@ public class DebugReportServiceTests : IDisposable
     private readonly PluginTestContext _context;
     private readonly Mock<IApplicationHost> _applicationHostMock;
     private readonly Mock<ILibraryManager> _libraryManagerMock;
+    private readonly Mock<IUserManager> _userManagerMock;
     private readonly Mock<ILogger<DebugReportService>> _loggerMock;
     private readonly DebugReportService _service;
 
@@ -29,15 +31,18 @@ public class DebugReportServiceTests : IDisposable
         _context = new PluginTestContext();
         _applicationHostMock = new Mock<IApplicationHost>();
         _libraryManagerMock = new Mock<ILibraryManager>();
+        _userManagerMock = new Mock<IUserManager>();
         _loggerMock = new Mock<ILogger<DebugReportService>>();
 
         _applicationHostMock.Setup(x => x.ApplicationVersionString).Returns("10.9.0");
         _applicationHostMock.Setup(x => x.GetExports<IPlugin>(It.IsAny<bool>())).Returns(Array.Empty<IPlugin>());
         _libraryManagerMock.Setup(x => x.GetVirtualFolders()).Returns(new List<MediaBrowser.Model.Entities.VirtualFolderInfo>());
+        _userManagerMock.Setup(x => x.Users).Returns(Array.Empty<User>());
 
         _service = new DebugReportService(
             _applicationHostMock.Object,
             _libraryManagerMock.Object,
+            _userManagerMock.Object,
             _loggerMock.Object);
     }
 

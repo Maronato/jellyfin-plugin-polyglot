@@ -228,6 +228,16 @@ public class MirrorHealthInfo
     public string SourceLibrary { get; set; } = string.Empty;
 
     /// <summary>
+    /// Gets or sets the source path(s) (may be anonymized based on options).
+    /// </summary>
+    public string? SourcePath { get; set; }
+
+    /// <summary>
+    /// Gets or sets whether the source path exists.
+    /// </summary>
+    public bool? SourcePathExists { get; set; }
+
+    /// <summary>
     /// Gets or sets the target path (may be anonymized based on options).
     /// </summary>
     public string? TargetPath { get; set; }
