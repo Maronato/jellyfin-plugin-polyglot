@@ -449,7 +449,6 @@ public partial class DebugReportService : IDebugReportService
         var logs = LogBuffer
             .Where(e => e.Timestamp >= cutoff)
             .OrderByDescending(e => e.Timestamp)
-            .Take(100) // Limit output
             .ToList();
 
         // If paths are not being included, sanitize the logs
