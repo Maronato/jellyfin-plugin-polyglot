@@ -10,6 +10,14 @@
     "repositoryUrl": "https://github.com/Maronato/jellyfin-plugin-polyglot",
     "versions": [
       {
+        "version": "0.8.1.0",
+        "changelog": "## What's Changed\r\n\r\n### 📝 Documentation\r\n- Comprehensive update to README.md with clearer installation instructions and new feature documentation\r\n- Expanded developer guide (`Jellyfin.Plugin.Polyglot/README.md`) with improved architecture overview, service descriptions, and data flow diagrams\r\n- Added sections on auto-managing new users and built-in diagnostics\r\n- Updated \"Building from Source\" section to \"Contributing\" with link to Developer Guide\r\n- Fixed formatting and typos in metadata descriptions\r\n\r\n### 🔧 Improvements\r\n- Simplified GitHub Actions workflow for plugin build and release\r\n- Refactored version extraction logic for improved clarity and maintainability\r\n- Updated artifact upload and release creation steps for better handling of existing releases\r\n- Updated repository URLs in manifest.json and README.md to reflect the correct plugin repository name\r\n- Improved changelog format in manifest.json for all versions\r\n\r\n### 🏠 Housekeeping\r\n- Updated manifest.json and build.yaml for v0.8.0 release artifacts\r\n\r\n**Full Changelog**: https://github.com/Maronato/jellyfin-multi-lang/compare/v0.8.0...main",
+        "targetAbi": "10.10.0.0",
+        "sourceUrl": "https://github.com/Maronato/jellyfin-plugin-polyglot/releases/download/v0.8.1/polyglot_0.8.1.0.zip",
+        "checksum": "192d62ca612cb51b0c63ce27399d5fc7",
+        "timestamp": "2025-11-28T19:27:07Z"
+      },
+      {
         "version": "0.8.0.0",
         "changelog": "## What's Changed\n\n### ✨ New Features\n- Add optional request body to TestLdap endpoint for more flexible LDAP testing\n- Remove log entry limit in debug reports for more comprehensive debugging\n\n### 🐛 Bug Fixes\n- Register scheduled tasks in service registrator (fixes tasks not running)\n\n### 🔧 Improvements\n- Refactor MirrorService to use FileSignature for more reliable file tracking\n- Migrate logging to centralized PolyglotLogger helper methods\n- Source default exclusion constants from FileClassifier for consistency\n- Remove unused GetNonMirrorLibraries method\n\n### 📝 Documentation\n- Update README.md to clarify project description and add AI-generated notice\n\n**Full Changelog**: https://github.com/Maronato/jellyfin-plugin-polyglot/compare/v0.7.0...v0.8.0",
         "targetAbi": "10.10.0.0",
