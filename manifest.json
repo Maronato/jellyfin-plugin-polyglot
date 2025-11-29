@@ -10,6 +10,14 @@
     "repositoryUrl": "https://github.com/Maronato/jellyfin-plugin-polyglot",
     "versions": [
       {
+        "version": "0.8.6.0",
+        "changelog": "## What's Changed\n\n### ✨ New Features\n- Add UI configuration endpoints to PolyglotController\n  - Introduced `GetUIConfig` and `UpdateUIConfig` methods to manage plugin UI settings\n  - Enhanced response structure to include libraries, users, cultures, countries, LDAP status, and server configuration\n  - Updated front-end JavaScript to load and render UI data from the new API endpoints\n  - Implemented change detection for settings and LDAP integration in the configuration page\n\n**Full Changelog**: https://github.com/Maronato/jellyfin-plugin-polyglot/compare/v0.8.5...v0.8.6",
+        "targetAbi": "10.10.0.0",
+        "sourceUrl": "https://github.com/Maronato/jellyfin-plugin-polyglot/releases/download/v0.8.6/polyglot_0.8.6.0.zip",
+        "checksum": "280590ab9e4edf88b9af628d7abdf083",
+        "timestamp": "2025-11-29T02:23:05Z"
+      },
+      {
         "version": "0.8.5.0",
         "changelog": "## What's Changed\n\n### 🐛 Bug Fixes\n- Revert deep cloning in SaveConfiguration method\n  - Removed JSON serialization deep cloning that was causing configuration sync issues\n- Revert enhanced debug logging from PolyglotController\n  - Removed verbose debug logging with hash codes and mirror details from API endpoints\n- Restore original SaveConfiguration call in Plugin.cs\n  - Changed `UpdateConfiguration` back to `SaveConfiguration` for proper configuration handling\n- Remove basic debug logging from PolyglotController\n  - Restored original simple log messages in `GetAlternatives` and `AddLibraryMirror` methods\n\n**Full Changelog**: https://github.com/Maronato/jellyfin-plugin-polyglot/compare/v0.8.4...v0.8.5",
         "targetAbi": "10.10.0.0",
