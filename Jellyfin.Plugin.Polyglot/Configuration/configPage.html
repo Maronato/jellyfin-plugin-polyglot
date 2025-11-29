@@ -355,7 +355,13 @@
                 cultures: [],
                 countries: [],
                 serverConfig: null,
+                settings: null,
+                ldapStatus: null,
                 initialized: false,
+                
+                // Track initial settings values to detect changes
+                initialSettings: null,
+                initialLdapEnabled: null,
 
                 // Custom API helpers for plugin-specific endpoints
                 apiGet: function(endpoint) {
@@ -368,6 +374,16 @@
                 type: 'POST',
                         data: JSON.stringify(data),
                         contentType: 'application/json'
+            });
+                },
+
+                apiPostJson: function(endpoint, data) {
+                    return ApiClient.ajax({
+                        url: ApiClient.getUrl(endpoint),
+                        type: 'POST',
+                        data: JSON.stringify(data),
+                        contentType: 'application/json',
+                        dataType: 'json'
             });
                 },
 
@@ -438,32 +454,34 @@
                     });
                 },
 
-        // Load data
-                loadServerConfig: function() {
+        // Load all UI data from plugin endpoint
+                loadUIConfig: function() {
                     var self = this;
-                    return ApiClient.getServerConfiguration().then(function(config) {
-                        self.serverConfig = config;
+                    Dashboard.showLoadingMsg();
+                    return this.apiGet('Polyglot/UIConfig').then(function(config) {
+                        // Store all data from single response
+                        self.libraries = config.Libraries || [];
+                        self.alternatives = config.Alternatives || [];
+                        self.users = config.Users || [];
+                        self.cultures = config.Cultures || [];
+                        self.countries = config.Countries || [];
+                        self.ldapStatus = config.LdapStatus || {};
+                        self.settings = config.Settings || {};
+                        self.serverConfig = config.ServerConfig || {};
+                        
+                        // Render all UI components
+                        self.renderLibraries();
+                        self.renderAlternatives();
+                        self.renderUsers();
+                        self.renderLdapStatus();
+                        self.renderSettings();
+                        self.populateLanguageDropdowns();
+                        
+                        Dashboard.hideLoadingMsg();
                         return config;
-                    });
-                },
-
-                loadCultures: function() {
-                    var self = this;
-                    return ApiClient.getCultures().then(function(cultures) {
-                        self.cultures = cultures.sort(function(a, b) {
-                            return a.DisplayName.localeCompare(b.DisplayName);
-                        });
-                        return cultures;
-                    });
-                },
-
-                loadCountries: function() {
-                    var self = this;
-                    return ApiClient.getCountries().then(function(countries) {
-                        self.countries = countries.sort(function(a, b) {
-                            return a.DisplayName.localeCompare(b.DisplayName);
-                        });
-                        return countries;
+                    }).catch(function(e) {
+                        Dashboard.hideLoadingMsg();
+                        Dashboard.alert('Failed to load configuration: ' + (e.message || 'Unknown error'));
                     });
                 },
 
@@ -480,51 +498,15 @@
                     var culture = this.cultures.find(function(c) {
                         return c.TwoLetterISOLanguageName === code || 
                                c.ThreeLetterISOLanguageName === code ||
-                               c.DisplayName.toLowerCase() === code.toLowerCase();
+                               (c.DisplayName && c.DisplayName.toLowerCase() === code.toLowerCase());
                     });
                     return culture ? culture.DisplayName : code;
                 },
 
-                loadLibraries: function() {
+                renderLibraries: function() {
                     var self = this;
-                    Dashboard.showLoadingMsg();
-                    // Use built-in ApiClient method for libraries, enhanced with our plugin data
-                    Promise.all([
-                        ApiClient.getVirtualFolders(),
-                        ApiClient.getPluginConfiguration(this.pluginUniqueId)
-                    ]).then(function(results) {
-                        var folders = results[0];
-                        var config = results[1];
-                        
-                        // Build set of mirror library IDs
-                        var mirrorIds = new Set();
-                        if (config.LanguageAlternatives) {
-                            config.LanguageAlternatives.forEach(function(alt) {
-                                if (alt.MirroredLibraries) {
-                                    alt.MirroredLibraries.forEach(function(m) {
-                                        if (m.TargetLibraryId) mirrorIds.add(m.TargetLibraryId);
-                                    });
-                                }
-                            });
-                        }
-                        
-                        self.libraries = folders.map(function(folder) {
-                            // Convert Jellyfin's ItemId to proper GUID format with dashes
-                            var itemId = folder.ItemId;
-                            var guidId = itemId.length === 32 
-                                ? itemId.substring(0,8) + '-' + itemId.substring(8,12) + '-' + itemId.substring(12,16) + '-' + itemId.substring(16,20) + '-' + itemId.substring(20)
-                                : itemId;
-                            return {
-                                Id: guidId,
-                                Name: folder.Name,
-                                CollectionType: folder.CollectionType,
-                                PreferredMetadataLanguage: folder.LibraryOptions ? folder.LibraryOptions.PreferredMetadataLanguage : null,
-                                IsMirror: mirrorIds.has(folder.ItemId) || mirrorIds.has(guidId)
-                            };
-                        });
-                        
                         var html = '';
-                        self.libraries.forEach(function(lib) {
+                    this.libraries.forEach(function(lib) {
                             var langDisplay = self.getLanguageDisplayName(lib.PreferredMetadataLanguage);
                             html += '<div class="listItem">';
                             html += '<div class="listItemBody">';
@@ -537,17 +519,12 @@
                             html += '</div>';
                         });
                         document.getElementById('librariesList').innerHTML = html || '<p class="fieldDescription">No libraries found.</p>';
-                        Dashboard.hideLoadingMsg();
-                    });
                 },
 
-                loadAlternatives: function() {
+                renderAlternatives: function() {
                     var self = this;
-                    // Use built-in ApiClient method for plugin configuration
-                    ApiClient.getPluginConfiguration(this.pluginUniqueId).then(function(config) {
-                        self.alternatives = config.LanguageAlternatives || [];
                         var html = '';
-                        self.alternatives.forEach(function(alt) {
+                    this.alternatives.forEach(function(alt) {
                             html += '<div class="listItem" style="flex-wrap: wrap;">';
                             html += '<div class="listItemBody" style="flex: 1;">';
                             var langDisplay = self.getLanguageDisplayName(alt.MetadataLanguage);
@@ -604,46 +581,12 @@
                             html += '</div>';
                         });
                         document.getElementById('alternativesList').innerHTML = html || '<p class="fieldDescription">No language alternatives configured. Click + to add one.</p>';
-                    });
                 },
 
-                loadUsers: function() {
+                renderUsers: function() {
                     var self = this;
-                    // Use built-in ApiClient.getUsers() and merge with plugin config
-                    Promise.all([
-                        ApiClient.getUsers(),
-                        ApiClient.getPluginConfiguration(this.pluginUniqueId)
-                    ]).then(function(results) {
-                        var jellyfinUsers = results[0];
-                        var config = results[1];
-                        // Convert UserLanguages array to a lookup object by UserId
-                        var userLanguagesArray = config.UserLanguages || [];
-                        var userLanguages = {};
-                        userLanguagesArray.forEach(function(ul) {
-                            userLanguages[ul.UserId] = ul;
-                        });
-                        
-                        self.users = jellyfinUsers.map(function(user) {
-                            var langConfig = userLanguages[user.Id];
-                            var altName = null;
-                            var isManaged = langConfig ? langConfig.IsPluginManaged : false;
-                            if (langConfig && langConfig.SelectedAlternativeId) {
-                                var alt = self.alternatives.find(function(a) { return a.Id === langConfig.SelectedAlternativeId; });
-                                if (alt) altName = alt.Name;
-                            }
-                            return {
-                                Id: user.Id,
-                                Username: user.Name,
-                                IsAdministrator: user.Policy && user.Policy.IsAdministrator,
-                                IsPluginManaged: isManaged,
-                                AssignedAlternativeId: langConfig ? langConfig.SelectedAlternativeId : null,
-                                AssignedAlternativeName: altName,
-                                ManuallySet: langConfig ? langConfig.ManuallySet : false
-                            };
-                        });
-                        
                         var html = '';
-                        self.users.forEach(function(user) {
+                    this.users.forEach(function(user) {
                             // Determine status text
                             var statusText = 'Not managed by plugin';
                             if (user.IsPluginManaged) {
@@ -672,43 +615,44 @@
                             html += '</div>';
                         });
                         document.getElementById('usersList').innerHTML = html || '<p class="fieldDescription">No users found.</p>';
-                    });
                 },
 
-                loadLdapStatus: function() {
+                renderLdapStatus: function() {
                     var self = this;
-                    this.apiGet('Polyglot/LdapStatus').then(function(status) {
-                        // Only show LDAP tab if plugin is installed
-                        var ldapTabButton = document.getElementById('ldapTabButton');
-                        if (status.IsPluginInstalled) {
-                            ldapTabButton.style.display = '';
-                            
-                            var html = '<div class="listItem"><div class="listItemBody">';
-                            html += '<div class="listItemBodyText">LDAP Plugin: ✓ Installed</div>';
-                            html += '<div class="listItemBodyText secondary">';
-                            html += 'Configured: ' + (status.IsConfigured ? '✓' : '✗');
-                            html += ' • Integration: ' + (status.IsIntegrationEnabled ? '✓ Enabled' : '✗ Disabled');
-                            if (status.ServerAddress) html += ' • Server: ' + status.ServerAddress;
-                            html += '</div>';
-                            html += '</div></div>';
-                            document.getElementById('ldapStatus').innerHTML = html;
-                            
-                            // Load the checkbox value
-                            document.getElementById('enableLdapIntegration').checked = status.IsIntegrationEnabled;
-                            
-                            // Load mappings only if installed
-                            self.loadLdapMappings();
-                        } else {
-                            ldapTabButton.style.display = 'none';
-                        }
-                    });
+                    var status = this.ldapStatus;
+                    
+                    // Only show LDAP tab if plugin is installed
+                    var ldapTabButton = document.getElementById('ldapTabButton');
+                    if (status && status.IsPluginInstalled) {
+                        ldapTabButton.style.display = '';
+                        
+                        var html = '<div class="listItem"><div class="listItemBody">';
+                        html += '<div class="listItemBodyText">LDAP Plugin: ✓ Installed</div>';
+                        html += '<div class="listItemBodyText secondary">';
+                        html += 'Configured: ' + (status.IsConfigured ? '✓' : '✗');
+                        html += ' • Integration: ' + (status.IsIntegrationEnabled ? '✓ Enabled' : '✗ Disabled');
+                        if (status.ServerAddress) html += ' • Server: ' + status.ServerAddress;
+                        html += '</div>';
+                        html += '</div></div>';
+                        document.getElementById('ldapStatus').innerHTML = html;
+                        
+                        // Load the checkbox value from settings
+                        var ldapEnabled = this.settings.EnableLdapIntegration || false;
+                        document.getElementById('enableLdapIntegration').checked = ldapEnabled;
+                        
+                        // Store initial value for change detection
+                        this.initialLdapEnabled = ldapEnabled;
+                        
+                        // Render LDAP mappings
+                        this.renderLdapMappings();
+                    } else {
+                        ldapTabButton.style.display = 'none';
+                    }
                 },
 
-                loadLdapMappings: function() {
+                renderLdapMappings: function() {
                     var self = this;
-                    // Use built-in ApiClient method for plugin configuration
-                    ApiClient.getPluginConfiguration(this.pluginUniqueId).then(function(config) {
-                        var mappings = config.LdapGroupMappings || [];
+                    var mappings = this.settings.LdapGroupMappings || [];
                         var html = '';
                         mappings.forEach(function(mapping) {
                             var altName = 'Unknown';
@@ -724,66 +668,56 @@
                             html += '</div>';
                         });
                         document.getElementById('ldapMappingsList').innerHTML = html || '<p class="fieldDescription">No LDAP group mappings configured.</p>';
-                    });
                 },
 
-                // Default exclusion values (fetched from server via Settings endpoint)
-                defaultExcludedExtensions: null,
-                defaultExcludedDirectories: null,
-
-                loadSettings: function() {
+                renderSettings: function() {
                     var self = this;
-                    // Use built-in ApiClient method for plugin configuration
-                    // DefaultExcludedExtensions and DefaultExcludedDirectories are included in the config
-                    ApiClient.getPluginConfiguration(this.pluginUniqueId).then(function(config) {
-                        // Store defaults from config (read-only properties from server)
-                        self.defaultExcludedExtensions = config.DefaultExcludedExtensions;
-                        self.defaultExcludedDirectories = config.DefaultExcludedDirectories;
-                        
-                        // Load new user settings
-                        document.getElementById('autoManageNewUsers').checked = config.AutoManageNewUsers || false;
-                        
-                        // Populate default language dropdown
-                        var select = document.getElementById('defaultLanguageAlternative');
-                        select.innerHTML = '<option value="">Default libraries (source only)</option>';
-                        self.alternatives.forEach(function(alt) {
-                            select.innerHTML += '<option value="' + alt.Id + '">' + alt.Name + '</option>';
-                        });
-                        
-                        // Set selected value
-                        if (config.DefaultLanguageAlternativeId) {
-                            select.value = config.DefaultLanguageAlternativeId;
-                        }
-                        
-                        // Load sync behavior settings
-                        // Default to true if not set (backward compatibility)
-                        document.getElementById('syncAfterLibraryScan').checked = config.SyncMirrorsAfterLibraryScan !== false;
-                        
-                        // Load exclusion settings
-                        var extensions = config.ExcludedExtensions || self.defaultExcludedExtensions;
-                        var directories = config.ExcludedDirectories || self.defaultExcludedDirectories;
-                        document.getElementById('excludedExtensions').value = extensions.join('\n');
-                        document.getElementById('excludedDirectories').value = directories.join('\n');
+                    var settings = this.settings;
+                    
+                    // Load new user settings
+                    var autoManageNewUsers = settings.AutoManageNewUsers || false;
+                    var defaultLangId = settings.DefaultLanguageAlternativeId || '';
+                    var syncAfterScan = settings.SyncMirrorsAfterLibraryScan !== false;
+                    var extensions = settings.ExcludedExtensions || settings.DefaultExcludedExtensions || [];
+                    var directories = settings.ExcludedDirectories || settings.DefaultExcludedDirectories || [];
+                    
+                    document.getElementById('autoManageNewUsers').checked = autoManageNewUsers;
+                    
+                    // Populate default language dropdown
+                    var select = document.getElementById('defaultLanguageAlternative');
+                    select.innerHTML = '<option value="">Default libraries (source only)</option>';
+                    this.alternatives.forEach(function(alt) {
+                        select.innerHTML += '<option value="' + alt.Id + '">' + alt.Name + '</option>';
                     });
+                    
+                    // Set selected value
+                    if (defaultLangId) {
+                        select.value = defaultLangId;
+                    }
+                    
+                    document.getElementById('syncAfterLibraryScan').checked = syncAfterScan;
+                    document.getElementById('excludedExtensions').value = extensions.join('\n');
+                    document.getElementById('excludedDirectories').value = directories.join('\n');
+                    
+                    // Store initial values for change detection
+                    this.initialSettings = {
+                        AutoManageNewUsers: autoManageNewUsers,
+                        DefaultLanguageAlternativeId: defaultLangId,
+                        SyncMirrorsAfterLibraryScan: syncAfterScan,
+                        ExcludedExtensions: extensions.slice(), // copy array
+                        ExcludedDirectories: directories.slice() // copy array
+                    };
                 },
                 
                 resetExclusionsToDefaults: function() {
-                    var self = this;
-                    var applyDefaults = function() {
-                        document.getElementById('excludedExtensions').value = self.defaultExcludedExtensions.join('\n');
-                        document.getElementById('excludedDirectories').value = self.defaultExcludedDirectories.join('\n');
+                    var defaults = this.settings;
+                    if (defaults.DefaultExcludedExtensions && defaults.DefaultExcludedDirectories) {
+                        document.getElementById('excludedExtensions').value = defaults.DefaultExcludedExtensions.join('\n');
+                        document.getElementById('excludedDirectories').value = defaults.DefaultExcludedDirectories.join('\n');
                         Dashboard.alert('Exclusion settings reset to defaults. Click "Save Settings" to apply.');
-                    };
-                    
-                    if (this.defaultExcludedExtensions && this.defaultExcludedDirectories) {
-                        applyDefaults();
                     } else {
-                        // Load defaults from plugin config if not already loaded
-                        ApiClient.getPluginConfiguration(this.pluginUniqueId).then(function(config) {
-                            self.defaultExcludedExtensions = config.DefaultExcludedExtensions;
-                            self.defaultExcludedDirectories = config.DefaultExcludedDirectories;
-                            applyDefaults();
-                        });
+                        // Reload config if defaults not available
+                        this.loadUIConfig();
                     }
                 },
 
@@ -879,13 +813,11 @@
                     Dashboard.showLoadingMsg();
                     this.apiPost('Polyglot/Alternatives', data).then(function() {
                         self.closeDialog('addAlternativeDialog');
-                        // Reload alternatives first, then users (which depends on alternatives for dropdown)
-                        self.loadAlternatives();
-                        self.loadUsers();
-                        Dashboard.hideLoadingMsg();
+                        // Reload all data
+                        self.loadUIConfig();
                     }).catch(function(e) {
                         Dashboard.hideLoadingMsg();
-                        Dashboard.alert('Failed to create alternative: ' + e.message);
+                        Dashboard.alert('Failed to create alternative: ' + (e.message || 'Unknown error'));
                     });
                 },
 
@@ -910,13 +842,12 @@
                     Dashboard.showLoadingMsg();
                     this.apiPost('Polyglot/Alternatives/' + altId + '/Libraries', data).then(function() {
                         self.closeDialog('addMirrorDialog');
-                        self.loadAlternatives();
-                        self.loadLibraries();
-                        Dashboard.hideLoadingMsg();
+                        // Reload all data
+                        self.loadUIConfig();
                         Dashboard.alert('Mirror creation started. The library will appear with "Pending" status and update as files are processed.');
                     }).catch(function(e) {
                         Dashboard.hideLoadingMsg();
-                        Dashboard.alert('Failed to create mirror: ' + e.message);
+                        Dashboard.alert('Failed to create mirror: ' + (e.message || 'Unknown error'));
                     });
                 },
 
@@ -937,10 +868,11 @@
                         if (result) {
                             Dashboard.showLoadingMsg();
                             self.apiDelete('Polyglot/Alternatives/' + altId + '?deleteLibraries=true&deleteFiles=true').then(function() {
-                                self.loadAlternatives();
-                                self.loadLibraries();
-                                self.loadUsers();
+                                // Reload all data
+                                self.loadUIConfig();
+                            }).catch(function(e) {
                                 Dashboard.hideLoadingMsg();
+                                Dashboard.alert('Failed to delete alternative: ' + (e.message || 'Unknown error'));
                             });
                         }
                     });
@@ -952,12 +884,11 @@
                         if (result) {
                             Dashboard.showLoadingMsg();
                             self.apiDelete('Polyglot/Alternatives/' + altId + '/Libraries/' + sourceLibraryId + '?deleteLibrary=true&deleteFiles=true').then(function() {
-                                self.loadAlternatives();
-                                self.loadLibraries();
-                                Dashboard.hideLoadingMsg();
+                                // Reload all data
+                                self.loadUIConfig();
                             }).catch(function(e) {
                                 Dashboard.hideLoadingMsg();
-                                Dashboard.alert('Failed to delete mirror: ' + e.message);
+                                Dashboard.alert('Failed to delete mirror: ' + (e.message || 'Unknown error'));
                             });
                         }
                     });
@@ -985,11 +916,11 @@
                     }
                     
                     this.apiPut('Polyglot/Users/' + userId + '/Language', requestData).then(function() {
-                        self.loadUsers();
-                        Dashboard.hideLoadingMsg();
+                        // Reload all data
+                        self.loadUIConfig();
                     }).catch(function(e) {
                         Dashboard.hideLoadingMsg();
-                        Dashboard.alert('Failed to set user language: ' + e.message);
+                        Dashboard.alert('Failed to set user language: ' + (e.message || 'Unknown error'));
                     });
                 },
 
@@ -1004,11 +935,11 @@
                     Dashboard.showLoadingMsg();
                     this.apiPost('Polyglot/LdapGroups', data).then(function() {
                         self.closeDialog('addLdapMappingDialog');
-                        self.loadLdapMappings();
-                        Dashboard.hideLoadingMsg();
+                        // Reload all data
+                        self.loadUIConfig();
                     }).catch(function(e) {
                         Dashboard.hideLoadingMsg();
-                        Dashboard.alert('Failed to create LDAP mapping: ' + e.message);
+                        Dashboard.alert('Failed to create LDAP mapping: ' + (e.message || 'Unknown error'));
                     });
                 },
 
@@ -1016,8 +947,11 @@
                     var self = this;
                     Dashboard.showLoadingMsg();
                     this.apiDelete('Polyglot/LdapGroups/' + id).then(function() {
-                        self.loadLdapMappings();
+                        // Reload all data
+                        self.loadUIConfig();
+                    }).catch(function(e) {
                         Dashboard.hideLoadingMsg();
+                        Dashboard.alert('Failed to delete LDAP mapping: ' + (e.message || 'Unknown error'));
                     });
                 },
 
@@ -1053,51 +987,123 @@
                         function(result) {
                             if (result) {
                                 Dashboard.showLoadingMsg();
-                                self.apiPost('Polyglot/Users/EnableAll', {}).then(function(response) {
-                                    Dashboard.hideLoadingMsg();
+                                self.apiPostJson('Polyglot/Users/EnableAll', {}).then(function(response) {
                                     Dashboard.alert('Enabled plugin for ' + response.UsersEnabled + ' users.');
-                                    self.loadUsers();
+                                    // Reload all data
+                                    self.loadUIConfig();
                                 }).catch(function(e) {
                                     Dashboard.hideLoadingMsg();
-                                    Dashboard.alert('Failed to enable users: ' + e.message);
+                                    Dashboard.alert('Failed to enable users: ' + (e.message || 'Unknown error'));
                                 });
                             }
                         }
                     );
                 },
 
+                // Helper to compare arrays for equality
+                arraysEqual: function(a, b) {
+                    if (a.length !== b.length) return false;
+                    for (var i = 0; i < a.length; i++) {
+                        if (a[i] !== b[i]) return false;
+                    }
+                    return true;
+                },
+
                 saveSettings: function() {
                     var self = this;
-                    Dashboard.showLoadingMsg();
-                    // Use built-in ApiClient method for plugin configuration
-                    ApiClient.getPluginConfiguration(this.pluginUniqueId).then(function(config) {
-                        // Save new user settings
-                        config.AutoManageNewUsers = document.getElementById('autoManageNewUsers').checked;
-                        var defaultLangValue = document.getElementById('defaultLanguageAlternative').value;
-                        config.DefaultLanguageAlternativeId = defaultLangValue || null;
-                        
-                        // Save sync behavior settings
-                        config.SyncMirrorsAfterLibraryScan = document.getElementById('syncAfterLibraryScan').checked;
+                    
+                    // Get current form values
+                    var currentAutoManage = document.getElementById('autoManageNewUsers').checked;
+                    var currentDefaultLang = document.getElementById('defaultLanguageAlternative').value || '';
+                    var currentSyncAfterScan = document.getElementById('syncAfterLibraryScan').checked;
                         
                         // Parse exclusion settings (split by newlines, filter empty, trim whitespace)
                         var extensionsText = document.getElementById('excludedExtensions').value;
                         var directoriesText = document.getElementById('excludedDirectories').value;
                         
-                        config.ExcludedExtensions = extensionsText.split('\n')
+                    var currentExtensions = extensionsText.split('\n')
                             .map(function(s) { return s.trim(); })
                             .filter(function(s) { return s.length > 0; });
                         
-                        config.ExcludedDirectories = directoriesText.split('\n')
+                    var currentDirectories = directoriesText.split('\n')
                             .map(function(s) { return s.trim(); })
                             .filter(function(s) { return s.length > 0; });
                         
-                        return ApiClient.updatePluginConfiguration(self.pluginUniqueId, config);
-                    }).then(function() {
+                    // Build update request with ONLY changed settings
+                    var settingsUpdate = {};
+                    var hasChanges = false;
+                    
+                    if (!this.initialSettings) {
+                        // No initial state - send everything (shouldn't happen, but fallback)
+                        settingsUpdate.AutoManageNewUsers = currentAutoManage;
+                        settingsUpdate.DefaultLanguageAlternativeId = currentDefaultLang || null;
+                        settingsUpdate.DefaultLanguageAlternativeIdProvided = true;
+                        settingsUpdate.SyncMirrorsAfterLibraryScan = currentSyncAfterScan;
+                        settingsUpdate.ExcludedExtensions = currentExtensions;
+                        settingsUpdate.ExcludedDirectories = currentDirectories;
+                        hasChanges = true;
+                    } else {
+                        // Only include fields that have changed
+                        if (currentAutoManage !== this.initialSettings.AutoManageNewUsers) {
+                            settingsUpdate.AutoManageNewUsers = currentAutoManage;
+                            hasChanges = true;
+                        }
+                        
+                        if (currentDefaultLang !== this.initialSettings.DefaultLanguageAlternativeId) {
+                            settingsUpdate.DefaultLanguageAlternativeId = currentDefaultLang || null;
+                            settingsUpdate.DefaultLanguageAlternativeIdProvided = true;
+                            hasChanges = true;
+                        }
+                        
+                        if (currentSyncAfterScan !== this.initialSettings.SyncMirrorsAfterLibraryScan) {
+                            settingsUpdate.SyncMirrorsAfterLibraryScan = currentSyncAfterScan;
+                            hasChanges = true;
+                        }
+                        
+                        if (!this.arraysEqual(currentExtensions, this.initialSettings.ExcludedExtensions)) {
+                            settingsUpdate.ExcludedExtensions = currentExtensions;
+                            hasChanges = true;
+                        }
+                        
+                        if (!this.arraysEqual(currentDirectories, this.initialSettings.ExcludedDirectories)) {
+                            settingsUpdate.ExcludedDirectories = currentDirectories;
+                            hasChanges = true;
+                        }
+                    }
+                    
+                    if (!hasChanges) {
+                        Dashboard.alert('No changes to save.');
+                        return;
+                    }
+                    
+                    Dashboard.showLoadingMsg();
+                    
+                    var updateRequest = {
+                        Settings: settingsUpdate
+                    };
+                    
+                    this.apiPostJson('Polyglot/UIConfig', updateRequest).then(function(config) {
+                        // Update local state from response
+                        self.libraries = config.Libraries || [];
+                        self.alternatives = config.Alternatives || [];
+                        self.users = config.Users || [];
+                        self.settings = config.Settings || {};
+                        self.ldapStatus = config.LdapStatus || {};
+                        
+                        // Update initial settings to the new saved values
+                        self.initialSettings = {
+                            AutoManageNewUsers: config.Settings.AutoManageNewUsers || false,
+                            DefaultLanguageAlternativeId: config.Settings.DefaultLanguageAlternativeId || '',
+                            SyncMirrorsAfterLibraryScan: config.Settings.SyncMirrorsAfterLibraryScan !== false,
+                            ExcludedExtensions: (config.Settings.ExcludedExtensions || []).slice(),
+                            ExcludedDirectories: (config.Settings.ExcludedDirectories || []).slice()
+                        };
+                        
                         Dashboard.hideLoadingMsg();
-                        Dashboard.processPluginConfigurationUpdateResult();
+                        Dashboard.alert('Settings saved successfully.');
                     }).catch(function(e) {
                         Dashboard.hideLoadingMsg();
-                        Dashboard.alert('Failed to save settings: ' + e.message);
+                        Dashboard.alert('Failed to save settings: ' + (e.message || 'Unknown error'));
                     });
                 },
 
@@ -1172,17 +1178,38 @@
 
                 saveLdapSettings: function() {
                     var self = this;
+                    var currentLdapEnabled = document.getElementById('enableLdapIntegration').checked;
+                    
+                    // Check if value has changed
+                    if (this.initialLdapEnabled !== null && currentLdapEnabled === this.initialLdapEnabled) {
+                        Dashboard.alert('No changes to save.');
+                        return;
+                    }
+                    
                     Dashboard.showLoadingMsg();
-                    ApiClient.getPluginConfiguration(this.pluginUniqueId).then(function(config) {
-                        config.EnableLdapIntegration = document.getElementById('enableLdapIntegration').checked;
-                        return ApiClient.updatePluginConfiguration(self.pluginUniqueId, config);
-                    }).then(function() {
+                    
+                    var updateRequest = {
+                        Settings: {
+                            EnableLdapIntegration: currentLdapEnabled
+                        }
+                    };
+                    
+                    this.apiPostJson('Polyglot/UIConfig', updateRequest).then(function(config) {
+                        // Update local state from response
+                        self.settings = config.Settings || {};
+                        self.ldapStatus = config.LdapStatus || {};
+                        
+                        // Update initial value for future change detection
+                        self.initialLdapEnabled = config.Settings.EnableLdapIntegration || false;
+                        
+                        // Re-render LDAP status to reflect changes
+                        self.renderLdapStatus();
+                        
                         Dashboard.hideLoadingMsg();
-                        Dashboard.processPluginConfigurationUpdateResult();
-                        self.loadLdapStatus();
+                        Dashboard.alert('LDAP settings saved successfully.');
                     }).catch(function(e) {
                         Dashboard.hideLoadingMsg();
-                        Dashboard.alert('Failed to save LDAP settings: ' + e.message);
+                        Dashboard.alert('Failed to save LDAP settings: ' + (e.message || 'Unknown error'));
                     });
                 },
 
@@ -1222,22 +1249,8 @@
                 init: function() {
                     var self = this;
                     
-                    // Load reference data first, then other data
-                    Promise.all([
-                        this.loadServerConfig(),
-                        this.loadCultures(),
-                        this.loadCountries()
-                    ]).then(function() {
-                        // Now load the rest
-                        self.loadLibraries();
-                        self.loadAlternatives();
-                        self.loadUsers();
-                        self.loadLdapStatus();
-                        self.loadSettings();
-                        
-                        // Populate dropdowns
-                        self.populateLanguageDropdowns();
-                    });
+                    // Load all UI data in a single request
+                    this.loadUIConfig();
 
                     // Only attach event listeners once
                     if (this.initialized) {
@@ -1332,7 +1345,7 @@
 
             document.getElementById('polyglotConfigPage').addEventListener('pageshow', function() {
                 PolyglotConfig.init();
-        });
+            });
     </script>
 
         <style type="text/css">

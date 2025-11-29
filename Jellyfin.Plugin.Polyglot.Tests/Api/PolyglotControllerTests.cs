@@ -3,6 +3,9 @@ using Jellyfin.Plugin.Polyglot.Api;
 using Jellyfin.Plugin.Polyglot.Models;
 using Jellyfin.Plugin.Polyglot.Services;
 using Jellyfin.Plugin.Polyglot.Tests.TestHelpers;
+using MediaBrowser.Controller.Configuration;
+using MediaBrowser.Model.Configuration;
+using MediaBrowser.Model.Globalization;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.Extensions.Logging;
@@ -23,6 +26,8 @@ public class PolyglotControllerTests : IDisposable
     private readonly Mock<ILibraryAccessService> _libraryAccessServiceMock;
     private readonly Mock<ILdapIntegrationService> _ldapIntegrationServiceMock;
     private readonly Mock<IDebugReportService> _debugReportServiceMock;
+    private readonly Mock<ILocalizationManager> _localizationManagerMock;
+    private readonly Mock<IServerConfigurationManager> _serverConfigurationManagerMock;
     private readonly PolyglotController _controller;
 
     public PolyglotControllerTests()
@@ -33,7 +38,16 @@ public class PolyglotControllerTests : IDisposable
         _libraryAccessServiceMock = new Mock<ILibraryAccessService>();
         _ldapIntegrationServiceMock = new Mock<ILdapIntegrationService>();
         _debugReportServiceMock = new Mock<IDebugReportService>();
+        _localizationManagerMock = new Mock<ILocalizationManager>();
+        _serverConfigurationManagerMock = new Mock<IServerConfigurationManager>();
         var logger = new Mock<ILogger<PolyglotController>>();
+
+        // Setup default mock behavior for localization manager
+        _localizationManagerMock.Setup(l => l.GetCultures()).Returns(Array.Empty<CultureDto>());
+        _localizationManagerMock.Setup(l => l.GetCountries()).Returns(Array.Empty<MediaBrowser.Model.Globalization.CountryInfo>());
+        
+        // Setup default mock behavior for server configuration manager
+        _serverConfigurationManagerMock.Setup(s => s.Configuration).Returns(new ServerConfiguration());
 
         _controller = new PolyglotController(
             _mirrorServiceMock.Object,
@@ -41,6 +55,8 @@ public class PolyglotControllerTests : IDisposable
             _libraryAccessServiceMock.Object,
             _ldapIntegrationServiceMock.Object,
             _debugReportServiceMock.Object,
+            _localizationManagerMock.Object,
+            _serverConfigurationManagerMock.Object,
             logger.Object);
     }
 

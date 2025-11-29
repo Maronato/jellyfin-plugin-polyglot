@@ -6,9 +6,12 @@ using System.Linq;
 using System.Net.Mime;
 using System.Threading;
 using System.Threading.Tasks;
+using Jellyfin.Plugin.Polyglot.Configuration;
 using Jellyfin.Plugin.Polyglot.Helpers;
 using Jellyfin.Plugin.Polyglot.Models;
 using Jellyfin.Plugin.Polyglot.Services;
+using MediaBrowser.Controller.Configuration;
+using MediaBrowser.Model.Globalization;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
@@ -30,6 +33,8 @@ public class PolyglotController : ControllerBase
     private readonly ILibraryAccessService _libraryAccessService;
     private readonly ILdapIntegrationService _ldapIntegrationService;
     private readonly IDebugReportService _debugReportService;
+    private readonly ILocalizationManager _localizationManager;
+    private readonly IServerConfigurationManager _serverConfigurationManager;
     private readonly ILogger<PolyglotController> _logger;
 
     /// <summary>
@@ -41,6 +46,8 @@ public class PolyglotController : ControllerBase
         ILibraryAccessService libraryAccessService,
         ILdapIntegrationService ldapIntegrationService,
         IDebugReportService debugReportService,
+        ILocalizationManager localizationManager,
+        IServerConfigurationManager serverConfigurationManager,
         ILogger<PolyglotController> logger)
     {
         _mirrorService = mirrorService;
@@ -48,8 +55,162 @@ public class PolyglotController : ControllerBase
         _libraryAccessService = libraryAccessService;
         _ldapIntegrationService = ldapIntegrationService;
         _debugReportService = debugReportService;
+        _localizationManager = localizationManager;
+        _serverConfigurationManager = serverConfigurationManager;
         _logger = logger;
     }
+
+    #region UI Configuration
+
+    /// <summary>
+    /// Gets all configuration and data needed by the plugin UI in a single request.
+    /// This endpoint returns libraries, alternatives, users, cultures, countries, LDAP status, and settings.
+    /// </summary>
+    [HttpGet("UIConfig")]
+    [ProducesResponseType(StatusCodes.Status200OK)]
+    public ActionResult<UIConfigResponse> GetUIConfig()
+    {
+        var config = Plugin.Instance?.Configuration;
+        if (config == null)
+        {
+            return StatusCode(StatusCodes.Status500InternalServerError, "Plugin not configured");
+        }
+
+        // Get libraries
+        var libraries = _mirrorService.GetJellyfinLibraries().ToList();
+
+        // Get users with language assignments
+        var users = _userLanguageService.GetAllUsersWithLanguages().ToList();
+
+        // Get cultures and countries from localization manager
+        var cultures = _localizationManager.GetCultures()
+            .OrderBy(c => c.DisplayName)
+            .Select(c => new CultureInfo
+            {
+                DisplayName = c.DisplayName,
+                Name = c.Name,
+                TwoLetterISOLanguageName = c.TwoLetterISOLanguageName,
+                ThreeLetterISOLanguageName = c.ThreeLetterISOLanguageName
+            })
+            .ToList();
+
+        var countries = _localizationManager.GetCountries()
+            .OrderBy(c => c.DisplayName)
+            .Select(c => new CountryInfo
+            {
+                DisplayName = c.DisplayName,
+                Name = c.Name,
+                TwoLetterISORegionName = c.TwoLetterISORegionName,
+                ThreeLetterISORegionName = c.ThreeLetterISORegionName
+            })
+            .ToList();
+
+        // Get LDAP status
+        var ldapStatus = _ldapIntegrationService.GetLdapStatus();
+
+        // Get server configuration
+        var serverConfig = _serverConfigurationManager.Configuration;
+
+        var response = new UIConfigResponse
+        {
+            Libraries = libraries,
+            Alternatives = config.LanguageAlternatives,
+            Users = users,
+            Cultures = cultures,
+            Countries = countries,
+            LdapStatus = ldapStatus,
+            Settings = new UISettingsResponse
+            {
+                AutoManageNewUsers = config.AutoManageNewUsers,
+                DefaultLanguageAlternativeId = config.DefaultLanguageAlternativeId,
+                SyncMirrorsAfterLibraryScan = config.SyncMirrorsAfterLibraryScan,
+                ExcludedExtensions = config.ExcludedExtensions.ToList(),
+                ExcludedDirectories = config.ExcludedDirectories.ToList(),
+                DefaultExcludedExtensions = config.DefaultExcludedExtensions.ToList(),
+                DefaultExcludedDirectories = config.DefaultExcludedDirectories.ToList(),
+                EnableLdapIntegration = config.EnableLdapIntegration,
+                LdapGroupMappings = config.LdapGroupMappings
+            },
+            ServerConfig = new ServerConfigInfo
+            {
+                PreferredMetadataLanguage = serverConfig.PreferredMetadataLanguage,
+                MetadataCountryCode = serverConfig.MetadataCountryCode
+            }
+        };
+
+        return Ok(response);
+    }
+
+    /// <summary>
+    /// Updates plugin settings. Accepts partial updates - only provide fields you want to change.
+    /// Returns the full UI configuration after applying the update.
+    /// </summary>
+    [HttpPost("UIConfig")]
+    [ProducesResponseType(StatusCodes.Status200OK)]
+    [ProducesResponseType(StatusCodes.Status400BadRequest)]
+    public ActionResult<UIConfigResponse> UpdateUIConfig([FromBody] UIConfigUpdateRequest request)
+    {
+        var config = Plugin.Instance?.Configuration;
+        if (config == null)
+        {
+            return StatusCode(StatusCodes.Status500InternalServerError, "Plugin not configured");
+        }
+
+        // Apply settings updates (only if provided)
+        if (request.Settings != null)
+        {
+            if (request.Settings.AutoManageNewUsers.HasValue)
+            {
+                config.AutoManageNewUsers = request.Settings.AutoManageNewUsers.Value;
+            }
+
+            // DefaultLanguageAlternativeId can be explicitly set to null to clear it
+            if (request.Settings.DefaultLanguageAlternativeIdProvided)
+            {
+                // Validate if not null
+                if (request.Settings.DefaultLanguageAlternativeId.HasValue)
+                {
+                    var altExists = config.LanguageAlternatives.Any(a => a.Id == request.Settings.DefaultLanguageAlternativeId.Value);
+                    if (!altExists)
+                    {
+                        return BadRequest("Invalid DefaultLanguageAlternativeId: language alternative not found");
+                    }
+                }
+
+                config.DefaultLanguageAlternativeId = request.Settings.DefaultLanguageAlternativeId;
+            }
+
+            if (request.Settings.SyncMirrorsAfterLibraryScan.HasValue)
+            {
+                config.SyncMirrorsAfterLibraryScan = request.Settings.SyncMirrorsAfterLibraryScan.Value;
+            }
+
+            if (request.Settings.ExcludedExtensions != null)
+            {
+                config.ExcludedExtensions = new HashSet<string>(request.Settings.ExcludedExtensions, StringComparer.OrdinalIgnoreCase);
+            }
+
+            if (request.Settings.ExcludedDirectories != null)
+            {
+                config.ExcludedDirectories = new HashSet<string>(request.Settings.ExcludedDirectories, StringComparer.OrdinalIgnoreCase);
+            }
+
+            if (request.Settings.EnableLdapIntegration.HasValue)
+            {
+                config.EnableLdapIntegration = request.Settings.EnableLdapIntegration.Value;
+            }
+        }
+
+        // Save configuration
+        Plugin.Instance?.SaveConfiguration();
+
+        _logger.PolyglotInfo("Plugin settings updated via UIConfig endpoint");
+
+        // Return full UI config
+        return GetUIConfig();
+    }
+
+    #endregion
 
     #region Libraries
 
@@ -861,6 +1022,225 @@ public class DebugReportResponse
     /// Gets or sets the Markdown-formatted debug report.
     /// </summary>
     public string Markdown { get; set; } = string.Empty;
+}
+
+/// <summary>
+/// Complete UI configuration response containing all data needed by the plugin frontend.
+/// </summary>
+public class UIConfigResponse
+{
+    /// <summary>
+    /// Gets or sets the list of Jellyfin libraries.
+    /// </summary>
+    public List<LibraryInfo> Libraries { get; set; } = new();
+
+    /// <summary>
+    /// Gets or sets the list of language alternatives.
+    /// </summary>
+    public List<LanguageAlternative> Alternatives { get; set; } = new();
+
+    /// <summary>
+    /// Gets or sets the list of users with their language assignments.
+    /// </summary>
+    public List<UserInfo> Users { get; set; } = new();
+
+    /// <summary>
+    /// Gets or sets the available cultures/languages.
+    /// </summary>
+    public List<CultureInfo> Cultures { get; set; } = new();
+
+    /// <summary>
+    /// Gets or sets the available countries.
+    /// </summary>
+    public List<CountryInfo> Countries { get; set; } = new();
+
+    /// <summary>
+    /// Gets or sets the LDAP integration status.
+    /// </summary>
+    public LdapStatus LdapStatus { get; set; } = new();
+
+    /// <summary>
+    /// Gets or sets the plugin settings.
+    /// </summary>
+    public UISettingsResponse Settings { get; set; } = new();
+
+    /// <summary>
+    /// Gets or sets relevant server configuration.
+    /// </summary>
+    public ServerConfigInfo ServerConfig { get; set; } = new();
+}
+
+/// <summary>
+/// Plugin settings as returned by the UI config endpoint.
+/// </summary>
+public class UISettingsResponse
+{
+    /// <summary>
+    /// Gets or sets a value indicating whether new users are automatically managed.
+    /// </summary>
+    public bool AutoManageNewUsers { get; set; }
+
+    /// <summary>
+    /// Gets or sets the default language alternative ID for new users.
+    /// </summary>
+    public Guid? DefaultLanguageAlternativeId { get; set; }
+
+    /// <summary>
+    /// Gets or sets a value indicating whether mirrors sync after library scans.
+    /// </summary>
+    public bool SyncMirrorsAfterLibraryScan { get; set; }
+
+    /// <summary>
+    /// Gets or sets the excluded file extensions.
+    /// </summary>
+    public List<string> ExcludedExtensions { get; set; } = new();
+
+    /// <summary>
+    /// Gets or sets the excluded directory names.
+    /// </summary>
+    public List<string> ExcludedDirectories { get; set; } = new();
+
+    /// <summary>
+    /// Gets or sets the default excluded extensions (read-only).
+    /// </summary>
+    public List<string> DefaultExcludedExtensions { get; set; } = new();
+
+    /// <summary>
+    /// Gets or sets the default excluded directories (read-only).
+    /// </summary>
+    public List<string> DefaultExcludedDirectories { get; set; } = new();
+
+    /// <summary>
+    /// Gets or sets a value indicating whether LDAP integration is enabled.
+    /// </summary>
+    public bool EnableLdapIntegration { get; set; }
+
+    /// <summary>
+    /// Gets or sets the LDAP group mappings.
+    /// </summary>
+    public List<LdapGroupMapping> LdapGroupMappings { get; set; } = new();
+}
+
+/// <summary>
+/// Request to update UI configuration settings.
+/// </summary>
+public class UIConfigUpdateRequest
+{
+    /// <summary>
+    /// Gets or sets the settings to update. Only provided fields will be updated.
+    /// </summary>
+    public UISettingsUpdateRequest? Settings { get; set; }
+}
+
+/// <summary>
+/// Settings fields to update. All fields are optional - only provided fields will be updated.
+/// </summary>
+public class UISettingsUpdateRequest
+{
+    /// <summary>
+    /// Gets or sets whether new users are automatically managed.
+    /// </summary>
+    public bool? AutoManageNewUsers { get; set; }
+
+    /// <summary>
+    /// Gets or sets the default language alternative ID for new users.
+    /// Set to null to use "Default libraries" (source only).
+    /// </summary>
+    public Guid? DefaultLanguageAlternativeId { get; set; }
+
+    /// <summary>
+    /// Gets or sets a value indicating whether DefaultLanguageAlternativeId was explicitly provided.
+    /// This allows distinguishing between "not provided" and "explicitly set to null".
+    /// </summary>
+    public bool DefaultLanguageAlternativeIdProvided { get; set; }
+
+    /// <summary>
+    /// Gets or sets whether mirrors sync after library scans.
+    /// </summary>
+    public bool? SyncMirrorsAfterLibraryScan { get; set; }
+
+    /// <summary>
+    /// Gets or sets the excluded file extensions (replaces existing list).
+    /// </summary>
+    public List<string>? ExcludedExtensions { get; set; }
+
+    /// <summary>
+    /// Gets or sets the excluded directory names (replaces existing list).
+    /// </summary>
+    public List<string>? ExcludedDirectories { get; set; }
+
+    /// <summary>
+    /// Gets or sets whether LDAP integration is enabled.
+    /// </summary>
+    public bool? EnableLdapIntegration { get; set; }
+}
+
+/// <summary>
+/// Culture/language information for UI dropdowns.
+/// </summary>
+public class CultureInfo
+{
+    /// <summary>
+    /// Gets or sets the display name.
+    /// </summary>
+    public string DisplayName { get; set; } = string.Empty;
+
+    /// <summary>
+    /// Gets or sets the name.
+    /// </summary>
+    public string Name { get; set; } = string.Empty;
+
+    /// <summary>
+    /// Gets or sets the two-letter ISO language name.
+    /// </summary>
+    public string TwoLetterISOLanguageName { get; set; } = string.Empty;
+
+    /// <summary>
+    /// Gets or sets the three-letter ISO language name.
+    /// </summary>
+    public string ThreeLetterISOLanguageName { get; set; } = string.Empty;
+}
+
+/// <summary>
+/// Country information for UI dropdowns.
+/// </summary>
+public class CountryInfo
+{
+    /// <summary>
+    /// Gets or sets the display name.
+    /// </summary>
+    public string DisplayName { get; set; } = string.Empty;
+
+    /// <summary>
+    /// Gets or sets the name.
+    /// </summary>
+    public string Name { get; set; } = string.Empty;
+
+    /// <summary>
+    /// Gets or sets the two-letter ISO region name.
+    /// </summary>
+    public string TwoLetterISORegionName { get; set; } = string.Empty;
+
+    /// <summary>
+    /// Gets or sets the three-letter ISO region name.
+    /// </summary>
+    public string ThreeLetterISORegionName { get; set; } = string.Empty;
+}
+
+/// <summary>
+/// Server configuration information relevant to the plugin.
+/// </summary>
+public class ServerConfigInfo
+{
+    /// <summary>
+    /// Gets or sets the server's preferred metadata language.
+    /// </summary>
+    public string? PreferredMetadataLanguage { get; set; }
+
+    /// <summary>
+    /// Gets or sets the server's metadata country code.
+    /// </summary>
+    public string? MetadataCountryCode { get; set; }
 }
 
 #endregion
