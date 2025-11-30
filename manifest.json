@@ -10,6 +10,14 @@
     "repositoryUrl": "https://github.com/Maronato/jellyfin-plugin-polyglot",
     "versions": [
       {
+        "version": "0.8.8.0",
+        "changelog": "## What's Changed\n\n### ✨ New Features\n- Implement status polling for Languages tab in configuration page\n  - Added automatic polling for status updates every 5 seconds\n  - Introduced silent refresh mechanism to update UI without loading indicators\n  - Implemented visibility-based polling lifecycle using IntersectionObserver (polling stops when tab is not visible)\n\n**Full Changelog**: https://github.com/Maronato/jellyfin-plugin-polyglot/compare/v0.8.7...v0.8.8",
+        "targetAbi": "10.10.0.0",
+        "sourceUrl": "https://github.com/Maronato/jellyfin-plugin-polyglot/releases/download/v0.8.8/polyglot_0.8.8.0.zip",
+        "checksum": "76c05c031e3fce7bf7a1fe4e0a5de572",
+        "timestamp": "2025-11-30T07:37:10Z"
+      },
+      {
         "version": "0.8.7.0",
         "changelog": "## What's Changed\n\n### 🔄 Refactoring\n- Implement IConfigurationService for atomic configuration updates\n  - Introduced `IConfigurationService` to manage configuration changes atomically, preventing race conditions and stale references\n  - Refactored services and controllers to use centralized configuration access, ensuring thread safety and consistency\n  - Added deep cloning methods to models for safe configuration handling\n\n### 🔧 Improvements\n- Updated plugin uninstallation to use `IConfigurationService` for clearing configuration\n- Enhanced logging for configuration operations to improve traceability and debugging\n\n**Full Changelog**: https://github.com/Maronato/jellyfin-plugin-polyglot/compare/v0.8.6...v0.8.7",
         "targetAbi": "10.10.0.0",
