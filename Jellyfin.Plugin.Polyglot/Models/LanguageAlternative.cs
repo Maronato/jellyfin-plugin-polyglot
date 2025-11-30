@@ -15,12 +15,12 @@ public class LanguageAlternative
     public Guid Id { get; set; } = Guid.NewGuid();
 
     /// <summary>
-    /// Gets or sets the display name (e.g., "Portuguese").
+    /// Gets or sets the display name (e.g., "Spanish").
     /// </summary>
     public string Name { get; set; } = string.Empty;
 
     /// <summary>
-    /// Gets or sets the locale code (e.g., "pt-BR").
+    /// Gets or sets the locale code (e.g., "es-ES").
     /// </summary>
     public string LanguageCode { get; set; } = string.Empty;
 
@@ -35,7 +35,7 @@ public class LanguageAlternative
     public string MetadataCountry { get; set; } = string.Empty;
 
     /// <summary>
-    /// Gets or sets the base path for mirror directories (e.g., "/media/portuguese").
+    /// Gets or sets the base path for mirror directories (e.g., "/media/spanish").
     /// </summary>
     public string DestinationBasePath { get; set; } = string.Empty;
 

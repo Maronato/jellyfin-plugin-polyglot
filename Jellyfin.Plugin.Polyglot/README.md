@@ -112,13 +112,13 @@ Polyglot is a Jellyfin plugin that creates "mirror" libraries using filesystem h
 │    │       └── poster.jpg               ← English artwork (NOT hardlinked)             │
 │    │                                                                                   │
 │    └── polyglot/                                                                       │
-│        └── portuguese/                  ← Language alternative destination             │
+│        └── spanish/                  ← Language alternative destination                │
 │            └── movies/                  ← Mirror library path                          │
 │                └── Inception (2010)/                                                   │
 │                    ├── Inception.mkv    ← Hardlink to same inode 12345                 │
-│                    ├── Inception.nfo    ← Portuguese metadata                          │
-│                    └── poster.png       ← Portuguese artwork                           │
-│                                           (Portuguese metadata fetched by Jellyfin)    │
+│                    ├── Inception.nfo    ← Spanish metadata                             │
+│                    └── poster.png       ← Spanish artwork                              │
+│                                           (Spanish metadata fetched by Jellyfin)       │
 │                                                                                        │
 └────────────────────────────────────────────────────────────────────────────────────────┘
 ```
@@ -154,7 +154,7 @@ Admin clicks "Add Mirror"
 ### Data Flow: User Library Access Calculation
 
 ```
-User assigned to "Portuguese" language
+User assigned to "Spanish" language
                     │
                     ▼
         ┌───────────────────────┐

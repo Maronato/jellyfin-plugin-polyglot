@@ -252,7 +252,7 @@
                     <div class="inputContainer">
                         <label class="inputLabel" for="altName">Name</label>
                         <input id="altName" type="text" is="emby-input" required />
-                        <div class="fieldDescription">Display name (e.g., "Portuguese")</div>
+                        <div class="fieldDescription">Display name (e.g., "Spanish")</div>
                     </div>
                     <div class="selectContainer">
                         <label class="selectLabel" for="altLanguage">Language</label>
@@ -267,7 +267,7 @@
                     <div class="inputContainer">
                         <label class="inputLabel" for="altDestinationPath">Destination Base Path</label>
                         <div style="display: flex; align-items: center;">
-                            <input id="altDestinationPath" type="text" is="emby-input" required placeholder="/media/portuguese" style="flex-grow: 1;" />
+                            <input id="altDestinationPath" type="text" is="emby-input" required placeholder="/media/spanish" style="flex-grow: 1;" />
                             <button type="button" is="paper-icon-button-light" class="btnBrowseDestination" title="Browse" style="margin-left: 0.5em;">
                                 <span class="material-icons folder_open" aria-hidden="true"></span>
                             </button>
@@ -304,7 +304,7 @@
                 </div>
                     <div class="inputContainer">
                         <label class="inputLabel" for="mirrorTargetName">Library Name (optional)</label>
-                        <input id="mirrorTargetName" type="text" is="emby-input" placeholder="Movies (Portuguese)" />
+                        <input id="mirrorTargetName" type="text" is="emby-input" placeholder="Movies (Spanish)" />
                         <div class="fieldDescription">Name for the new Jellyfin library</div>
                 </div>
                     <div class="formDialogFooter">
@@ -322,11 +322,11 @@
                 <form id="addLdapMappingForm">
                     <div class="inputContainer">
                         <label class="inputLabel" for="ldapGroupDn">Group DN</label>
-                        <input id="ldapGroupDn" type="text" is="emby-input" required placeholder="CN=Portuguese Users,OU=Groups,DC=example,DC=com" />
+                        <input id="ldapGroupDn" type="text" is="emby-input" required placeholder="CN=Spanish Users,OU=Groups,DC=example,DC=com" />
                 </div>
                     <div class="inputContainer">
                         <label class="inputLabel" for="ldapGroupName">Group Name (optional)</label>
-                        <input id="ldapGroupName" type="text" is="emby-input" placeholder="Portuguese Users" />
+                        <input id="ldapGroupName" type="text" is="emby-input" placeholder="Spanish Users" />
                         <div class="fieldDescription">Friendly name, also used for CN matching</div>
                 </div>
                     <div class="selectContainer">
@@ -855,7 +855,7 @@
                         return c.TwoLetterISORegionName === countrySelect.value; 
                     });
                     
-                    // Build language code like "pt-BR" from selections
+                    // Build language code like "es-ES" from selections
                     var languageCode = languageSelect.value;
                     if (countrySelect.value) {
                         languageCode += '-' + countrySelect.value;

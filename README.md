@@ -16,7 +16,7 @@ Polyglot creates language-specific "mirror" libraries using filesystem hardlinks
     Inception (2010)/
         Inception.mkv
 
-/media/polyglot/portuguese/movies/  ← Mirror library (Portuguese metadata)
+/media/polyglot/spanish/movies/     ← Mirror library (Spanish metadata)
     Inception (2010)/
         Inception.mkv  ──────────→ [hardlink to original, zero extra storage]
 ```
@@ -62,10 +62,10 @@ Download from [Releases](https://github.com/Maronato/jellyfin-plugin-polyglot/re
 
 1. Go to **Dashboard → Plugins → Polyglot → Languages tab**
 2. Click the **+** button and fill in:
-    - **Name**: Display name (e.g., "Portuguese")
-    - **Language**: Select from dropdown (e.g., "Portuguese")
-    - **Country** _(optional)_: For region-specific metadata (e.g., "Brazil" for pt-BR)
-    - **Destination Path**: Where mirrors will be created (e.g., `/media/polyglot/portuguese`)
+    - **Name**: Display name (e.g., "Spanish")
+    - **Language**: Select from dropdown (e.g., "Spanish")
+    - **Country** _(optional)_: For region-specific metadata (e.g., "Spain" for es-ES)
+    - **Destination Path**: Where mirrors will be created (e.g., `/media/polyglot/spanish`)
 
 ### 2. Add Library Mirrors
 
@@ -92,7 +92,7 @@ Hardlinks require source and destination to be on the **same filesystem**. In Do
 # ✅ Correct — single mount allows hardlinks
 volumes:
   - /mnt/media:/media:rw
-# Source: /media/movies → Mirror: /media/polyglot/portuguese/movies
+# Source: /media/movies → Mirror: /media/polyglot/spanish/movies
 
 # ❌ Wrong — separate mounts break hardlinks
 volumes:
@@ -149,7 +149,7 @@ Polyglot can automatically assign languages based on LDAP group membership:
 1. Install [jellyfin-plugin-ldapauth](https://github.com/jellyfin/jellyfin-plugin-ldapauth) and configure it
 2. Go to **Polyglot → LDAP tab**
 3. Enable **LDAP Integration**
-4. Add group mappings (e.g., "Portuguese Users" → Portuguese language)
+4. Add group mappings (e.g., "Spanish Users" → Spanish language)
 5. Set priorities if users might be in multiple groups (higher priority wins)
 
 When a new user logs in via LDAP, Polyglot checks their groups and assigns the matching language automatically.

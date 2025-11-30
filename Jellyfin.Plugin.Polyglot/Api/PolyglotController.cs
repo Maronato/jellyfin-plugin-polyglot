@@ -1018,7 +1018,7 @@ public class CreateAlternativeRequest
     public string Name { get; set; } = string.Empty;
 
     /// <summary>
-    /// Gets or sets the language code (e.g., "pt-BR").
+    /// Gets or sets the language code (e.g., "es-ES").
     /// </summary>
     [Required]
     public string LanguageCode { get; set; } = string.Empty;
