@@ -8,6 +8,7 @@ using System.Threading.Tasks;
 using Jellyfin.Plugin.Polyglot.Helpers;
 using Jellyfin.Plugin.Polyglot.Models;
 using MediaBrowser.Controller.Library;
+using static Jellyfin.Plugin.Polyglot.Helpers.ProgressExtensions;
 using MediaBrowser.Controller.Providers;
 using MediaBrowser.Model.Entities;
 using MediaBrowser.Model.IO;
@@ -512,7 +513,7 @@ public class MirrorService : IMirrorService
                 completedOperations++;
                 if (totalOperations > 0)
                 {
-                    SafeReportProgress(progress, (double)completedOperations / totalOperations * 100);
+                    progress.SafeReport((double)completedOperations / totalOperations * 100);
                 }
             }
 
@@ -551,7 +552,7 @@ public class MirrorService : IMirrorService
                 completedOperations++;
                 if (totalOperations > 0)
                 {
-                    SafeReportProgress(progress, (double)completedOperations / totalOperations * 100);
+                    progress.SafeReport((double)completedOperations / totalOperations * 100);
                 }
             }
 
@@ -795,7 +796,7 @@ public class MirrorService : IMirrorService
             var mirrorProgress = new Progress<double>(p =>
             {
                 var overallProgress = ((i * 100.0) + p) / result.TotalMirrors;
-                SafeReportProgress(progress, overallProgress);
+                progress.SafeReport(overallProgress);
             });
 
             try
@@ -1330,25 +1331,5 @@ public class MirrorService : IMirrorService
     {
         return _libraryManager.GetVirtualFolders()
             .FirstOrDefault(f => Guid.TryParse(f.ItemId, out var folderId) && folderId == id);
-    }
-
-    /// <summary>
-    /// Safely reports progress without throwing if the callback fails.
-    /// </summary>
-    private void SafeReportProgress(IProgress<double>? progress, double value)
-    {
-        if (progress == null)
-        {
-            return;
-        }
-
-        try
-        {
-            progress.Report(value);
-        }
-        catch (Exception ex)
-        {
-            _logger.PolyglotDebug("Progress callback failed: {0}", ex.Message);
-        }
     }
 }

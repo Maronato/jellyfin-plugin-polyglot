@@ -354,37 +354,6 @@ public class FileClassifierTests
 
     #endregion
 
-    #region Static Property Tests
-
-    [Fact]
-    public void VideoExtensions_ContainsCommonFormats()
-    {
-        // Assert
-        FileClassifier.VideoExtensions.Should().Contain(".mkv");
-        FileClassifier.VideoExtensions.Should().Contain(".mp4");
-        FileClassifier.VideoExtensions.Should().Contain(".avi");
-    }
-
-    [Fact]
-    public void AudioExtensions_ContainsCommonFormats()
-    {
-        // Assert
-        FileClassifier.AudioExtensions.Should().Contain(".mp3");
-        FileClassifier.AudioExtensions.Should().Contain(".flac");
-        FileClassifier.AudioExtensions.Should().Contain(".aac");
-    }
-
-    [Fact]
-    public void SubtitleExtensions_ContainsCommonFormats()
-    {
-        // Assert
-        FileClassifier.SubtitleExtensions.Should().Contain(".srt");
-        FileClassifier.SubtitleExtensions.Should().Contain(".ass");
-        FileClassifier.SubtitleExtensions.Should().Contain(".vtt");
-    }
-
-    #endregion
-
     #region Disc Structure Tests
 
     [Theory]

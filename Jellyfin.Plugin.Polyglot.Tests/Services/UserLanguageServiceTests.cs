@@ -36,126 +36,6 @@ public class UserLanguageServiceTests : IDisposable
 
     public void Dispose() => _context.Dispose();
 
-    #region GetUserLanguage - Tests that config lookup works correctly
-
-    [Fact]
-    public void GetUserLanguage_UserHasAssignment_ReturnsConfig()
-    {
-        // Arrange
-        var userId = Guid.NewGuid();
-        var alternative = _context.AddLanguageAlternative("Portuguese", "pt-BR");
-        _context.AddUserLanguage(userId, alternative.Id, manuallySet: true, setBy: "admin");
-
-        // Act
-        var result = _service.GetUserLanguage(userId);
-
-        // Assert
-        result.Should().NotBeNull();
-        result!.SelectedAlternativeId.Should().Be(alternative.Id);
-        result.ManuallySet.Should().BeTrue();
-        result.SetBy.Should().Be("admin");
-    }
-
-    [Fact]
-    public void GetUserLanguage_UserHasNoAssignment_ReturnsNull()
-    {
-        // Arrange
-        var userId = Guid.NewGuid();
-        // No assignment added
-
-        // Act
-        var result = _service.GetUserLanguage(userId);
-
-        // Assert
-        result.Should().BeNull();
-    }
-
-    #endregion
-
-    #region GetUserLanguageAlternative - Tests alternative lookup
-
-    [Fact]
-    public void GetUserLanguageAlternative_UserAssignedToAlternative_ReturnsAlternative()
-    {
-        // Arrange
-        var userId = Guid.NewGuid();
-        var alternative = _context.AddLanguageAlternative("Spanish", "es-ES");
-        _context.AddUserLanguage(userId, alternative.Id);
-
-        // Act
-        var result = _service.GetUserLanguageAlternative(userId);
-
-        // Assert
-        result.Should().NotBeNull();
-        result!.Id.Should().Be(alternative.Id);
-        result.Name.Should().Be("Spanish");
-        result.LanguageCode.Should().Be("es-ES");
-    }
-
-    [Fact]
-    public void GetUserLanguageAlternative_AlternativeDeleted_ReturnsNull()
-    {
-        // Arrange - User assigned to an alternative that no longer exists
-        var userId = Guid.NewGuid();
-        var deletedAlternativeId = Guid.NewGuid();
-        _context.AddUserLanguage(userId, deletedAlternativeId);
-
-        // Act
-        var result = _service.GetUserLanguageAlternative(userId);
-
-        // Assert - Should handle gracefully
-        result.Should().BeNull();
-    }
-
-    #endregion
-
-    #region IsManuallySet - Tests manual override flag
-
-    [Fact]
-    public void IsManuallySet_ManualAssignment_ReturnsTrue()
-    {
-        // Arrange
-        var userId = Guid.NewGuid();
-        var alternative = _context.AddLanguageAlternative();
-        _context.AddUserLanguage(userId, alternative.Id, manuallySet: true);
-
-        // Act
-        var result = _service.IsManuallySet(userId);
-
-        // Assert
-        result.Should().BeTrue();
-    }
-
-    [Fact]
-    public void IsManuallySet_AutomaticAssignment_ReturnsFalse()
-    {
-        // Arrange
-        var userId = Guid.NewGuid();
-        var alternative = _context.AddLanguageAlternative();
-        _context.AddUserLanguage(userId, alternative.Id, manuallySet: false, setBy: "auto");
-
-        // Act
-        var result = _service.IsManuallySet(userId);
-
-        // Assert
-        result.Should().BeFalse();
-    }
-
-    [Fact]
-    public void IsManuallySet_NoAssignment_ReturnsFalse()
-    {
-        // Arrange
-        var userId = Guid.NewGuid();
-
-        // Act
-        var result = _service.IsManuallySet(userId);
-
-        // Assert
-        result.Should().BeFalse();
-    }
-
-    #endregion
-
     #region RemoveUser - Tests cleanup on user deletion
 
     [Fact]
@@ -230,7 +110,7 @@ public class UserLanguageServiceTests : IDisposable
         await _service.AssignLanguageAsync(userId, null, "admin", manuallySet: true);
 
         // Assert
-        var userConfig = _service.GetUserLanguage(userId);
+        var userConfig = _context.Configuration.UserLanguages.FirstOrDefault(u => u.UserId == userId);
         userConfig.Should().NotBeNull();
         userConfig!.SelectedAlternativeId.Should().BeNull("clearing should set alternative to null");
     }
@@ -275,13 +155,11 @@ public class UserLanguageServiceTests : IDisposable
         await _service.AssignLanguageAsync(userId, portuguese.Id, "admin", manuallySet: true);
 
         // Act - Check if the manual flag is preserved correctly
-        var isManual = _service.IsManuallySet(userId);
+        var userConfig = _context.Configuration.UserLanguages.FirstOrDefault(u => u.UserId == userId);
 
         // Assert - User should still be marked as manually set
-        isManual.Should().BeTrue("manual assignment should be respected");
-        
-        // Any automatic assignment caller should check IsManuallySet before calling AssignLanguageAsync
-        // This test documents that the flag is preserved correctly
+        userConfig.Should().NotBeNull();
+        userConfig!.ManuallySet.Should().BeTrue("manual assignment should be respected");
     }
 
     [Fact]

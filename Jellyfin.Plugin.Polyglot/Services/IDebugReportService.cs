@@ -27,14 +27,6 @@ public interface IDebugReportService
     /// <param name="cancellationToken">Cancellation token.</param>
     /// <returns>Markdown-formatted report string.</returns>
     Task<string> GenerateMarkdownReportAsync(DebugReportOptions? options = null, CancellationToken cancellationToken = default);
-
-    /// <summary>
-    /// Logs a message to the circular buffer.
-    /// </summary>
-    /// <param name="level">Log level.</param>
-    /// <param name="message">Log message.</param>
-    /// <param name="exception">Optional exception.</param>
-    void LogToBuffer(string level, string message, string? exception = null);
 }
 
 /// <summary>

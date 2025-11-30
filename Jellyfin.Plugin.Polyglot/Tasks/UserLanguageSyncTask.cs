@@ -4,6 +4,7 @@ using System.Threading;
 using System.Threading.Tasks;
 using Jellyfin.Plugin.Polyglot.Helpers;
 using Jellyfin.Plugin.Polyglot.Models;
+using static Jellyfin.Plugin.Polyglot.Helpers.ProgressExtensions;
 using Jellyfin.Plugin.Polyglot.Services;
 using MediaBrowser.Model.Tasks;
 using Microsoft.Extensions.Logging;
@@ -51,17 +52,8 @@ public class UserLanguageSyncTask : IScheduledTask
     /// <inheritdoc />
     public IEnumerable<TaskTriggerInfo> GetDefaultTriggers()
     {
-        // Parse the configured time (default 3:00 AM)
-        var timeString = _configService.Read(c => c.UserReconciliationTime);
-        if (string.IsNullOrEmpty(timeString))
-        {
-            timeString = "03:00";
-        }
-
-        if (!TimeSpan.TryParse(timeString, out var time))
-        {
-            time = new TimeSpan(3, 0, 0);
-        }
+        // Run daily at 3:00 AM
+        var time = new TimeSpan(3, 0, 0);
 
         return new[]
         {
@@ -74,7 +66,7 @@ public class UserLanguageSyncTask : IScheduledTask
     {
         _logger.PolyglotInfo("UserLanguageSyncTask: Starting user sync");
 
-        SafeReportProgress(progress, 0);
+        progress.SafeReport(0);
 
         try
         {
@@ -116,7 +108,7 @@ public class UserLanguageSyncTask : IScheduledTask
                 processedUsers++;
                 if (totalUsers > 0)
                 {
-                    SafeReportProgress(progress, (double)processedUsers / totalUsers * 100);
+                    progress.SafeReport((double)processedUsers / totalUsers * 100);
                 }
             }
 
@@ -131,21 +123,6 @@ public class UserLanguageSyncTask : IScheduledTask
             throw;
         }
 
-        SafeReportProgress(progress, 100);
-    }
-
-    /// <summary>
-    /// Safely reports progress without throwing if the callback fails.
-    /// </summary>
-    private void SafeReportProgress(IProgress<double> progress, double value)
-    {
-        try
-        {
-            progress.Report(value);
-        }
-        catch (Exception ex)
-        {
-            _logger.PolyglotDebug("UserLanguageSyncTask: Progress callback failed: {0}", ex.Message);
-        }
+        progress.SafeReport(100);
     }
 }

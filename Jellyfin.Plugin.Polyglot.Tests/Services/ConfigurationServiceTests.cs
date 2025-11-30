@@ -111,14 +111,14 @@ public class ConfigurationServiceTests : IDisposable
     {
         // Arrange
         _context.Configuration.AutoManageNewUsers = true;
-        _context.Configuration.UserReconciliationTime = "03:00";
+        _context.Configuration.SyncMirrorsAfterLibraryScan = false;
 
         // Act
-        var (autoManage, reconcTime) = _service.Read(c => (c.AutoManageNewUsers, c.UserReconciliationTime));
+        var (autoManage, syncAfterScan) = _service.Read(c => (c.AutoManageNewUsers, c.SyncMirrorsAfterLibraryScan));
 
         // Assert
         autoManage.Should().BeTrue();
-        reconcTime.Should().Be("03:00");
+        syncAfterScan.Should().BeFalse();
     }
 
     #endregion

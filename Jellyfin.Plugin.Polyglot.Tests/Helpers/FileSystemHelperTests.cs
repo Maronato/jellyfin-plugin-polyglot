@@ -9,50 +9,6 @@ namespace Jellyfin.Plugin.Polyglot.Tests.Helpers;
 /// </summary>
 public class FileSystemHelperTests
 {
-    #region IsPathSafe Tests
-
-    [Theory]
-    [InlineData("/media/movies/subdir", "/media/movies")]
-    [InlineData("/media/movies", "/media/movies")]
-    [InlineData("/media/movies/a/b/c", "/media/movies")]
-    public void IsPathSafe_PathWithinBase_ReturnsTrue(string path, string basePath)
-    {
-        // Act
-        var result = FileSystemHelper.IsPathSafe(path, basePath);
-
-        // Assert
-        result.Should().BeTrue($"{path} should be within {basePath}");
-    }
-
-    [Theory]
-    [InlineData("/media/other", "/media/movies")]
-    [InlineData("/other/movies", "/media/movies")]
-    [InlineData("/media/movies/../other", "/media/movies")]
-    public void IsPathSafe_PathOutsideBase_ReturnsFalse(string path, string basePath)
-    {
-        // Act
-        var result = FileSystemHelper.IsPathSafe(path, basePath);
-
-        // Assert
-        result.Should().BeFalse($"{path} should not be within {basePath}");
-    }
-
-    [Theory]
-    [InlineData(null, "/media/movies")]
-    [InlineData("/media/movies", null)]
-    [InlineData("", "/media/movies")]
-    [InlineData("/media/movies", "")]
-    public void IsPathSafe_NullOrEmptyPaths_ReturnsFalse(string? path, string? basePath)
-    {
-        // Act
-        var result = FileSystemHelper.IsPathSafe(path!, basePath!);
-
-        // Assert
-        result.Should().BeFalse("null or empty paths should return false");
-    }
-
-    #endregion
-
     #region AreOnSameFilesystem Tests (Windows-specific path checking)
 
     [Theory]

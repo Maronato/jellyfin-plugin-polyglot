@@ -56,11 +56,6 @@ public class PluginConfiguration : BasePluginConfiguration
     public List<UserLanguageConfig> UserLanguages { get; set; }
 
     /// <summary>
-    /// Gets or sets the time for daily user reconciliation task (in 24-hour format, e.g., "03:00").
-    /// </summary>
-    public string UserReconciliationTime { get; set; } = "03:00";
-
-    /// <summary>
     /// Gets or sets the file extensions to exclude from hardlinking (metadata and images).
     /// Extensions should include the leading dot (e.g., ".nfo", ".jpg").
     /// Values are normalized to lowercase and deduplicated.

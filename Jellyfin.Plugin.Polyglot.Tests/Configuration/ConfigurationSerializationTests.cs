@@ -139,25 +139,6 @@ public class ConfigurationSerializationTests
     }
 
     /// <summary>
-    /// Verifies that all boolean and primitive settings are preserved.
-    /// </summary>
-    [Fact]
-    public void Configuration_WithSettings_CanSerializeAndDeserialize()
-    {
-        // Arrange
-        var config = new PluginConfiguration
-        {
-            UserReconciliationTime = "04:30"
-        };
-
-        // Act
-        var result = SerializeAndDeserialize(config);
-
-        // Assert
-        result.UserReconciliationTime.Should().Be("04:30");
-    }
-
-    /// <summary>
     /// Verifies that new user default settings are preserved.
     /// </summary>
     [Fact]
@@ -249,7 +230,6 @@ public class ConfigurationSerializationTests
         {
             AutoManageNewUsers = true,
             DefaultLanguageAlternativeId = portugueseAltId,
-            UserReconciliationTime = "03:00",
             LanguageAlternatives = new List<LanguageAlternative>
             {
                 new LanguageAlternative
@@ -261,7 +241,6 @@ public class ConfigurationSerializationTests
                     MetadataCountry = "BR",
                     DestinationBasePath = "/media/portuguese",
                     CreatedAt = new DateTime(2024, 1, 1, 0, 0, 0, DateTimeKind.Utc),
-                    ModifiedAt = new DateTime(2024, 6, 1, 0, 0, 0, DateTimeKind.Utc),
                     MirroredLibraries = new List<LibraryMirror>
                     {
                         new LibraryMirror
@@ -373,7 +352,6 @@ public class ConfigurationSerializationTests
                 {
                     Id = Guid.NewGuid(),
                     Name = "Test",
-                    ModifiedAt = null, // Nullable DateTime
                     MirroredLibraries = new List<LibraryMirror>
                     {
                         new LibraryMirror
@@ -405,8 +383,6 @@ public class ConfigurationSerializationTests
 
         // Assert
         var alt = result.LanguageAlternatives[0];
-        alt.ModifiedAt.Should().BeNull();
-        
         var mirror = alt.MirroredLibraries[0];
         mirror.TargetLibraryId.Should().BeNull();
         mirror.CollectionType.Should().BeNull();

@@ -293,33 +293,6 @@ public static class FileSystemHelper
     }
 
     /// <summary>
-    /// Validates that a path doesn't contain path traversal attempts.
-    /// </summary>
-    /// <param name="path">Path to validate.</param>
-    /// <param name="basePath">The base path that the path should be within.</param>
-    /// <returns>True if the path is safe; false if it attempts traversal.</returns>
-    public static bool IsPathSafe(string path, string basePath)
-    {
-        if (string.IsNullOrEmpty(path) || string.IsNullOrEmpty(basePath))
-        {
-            return false;
-        }
-
-        try
-        {
-            var fullPath = Path.GetFullPath(path);
-            var fullBasePath = Path.GetFullPath(basePath);
-
-            // Ensure fullPath starts with fullBasePath
-            return fullPath.StartsWith(fullBasePath, StringComparison.OrdinalIgnoreCase);
-        }
-        catch
-        {
-            return false;
-        }
-    }
-
-    /// <summary>
     /// Recursively deletes empty directories up to the base path.
     /// </summary>
     /// <param name="directoryPath">Directory to start cleaning from.</param>

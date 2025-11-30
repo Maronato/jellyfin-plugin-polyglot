@@ -187,8 +187,9 @@ public class UserLanguageAssignmentBehaviorTests : IDisposable
             isPluginManaged: true);
 
         // Assert
-        var isManual = _userLanguageService.IsManuallySet(userId);
-        isManual.Should().BeTrue("manual assignments should be marked as such");
+        var userConfig = _context.Configuration.UserLanguages.FirstOrDefault(u => u.UserId == userId);
+        userConfig.Should().NotBeNull();
+        userConfig!.ManuallySet.Should().BeTrue("manual assignments should be marked as such");
     }
 
     [Fact]
@@ -209,63 +210,9 @@ public class UserLanguageAssignmentBehaviorTests : IDisposable
             isPluginManaged: true);
 
         // Assert
-        var isManual = _userLanguageService.IsManuallySet(userId);
-        isManual.Should().BeFalse("automatic assignments should not be marked as manual");
-    }
-
-    #endregion
-
-    #region Behavior: Getting user's current language
-
-    [Fact]
-    public async Task GetUserLanguage_ShouldReturnCurrentAssignment()
-    {
-        // Arrange
-        var userId = Guid.NewGuid();
-        CreateMockUser(userId);
-        var portuguese = _context.AddLanguageAlternative("Portuguese", "pt-BR");
-        await _userLanguageService.AssignLanguageAsync(userId, portuguese.Id, "admin", true, true);
-
-        // Act
-        var config = _userLanguageService.GetUserLanguage(userId);
-
-        // Assert
-        config.Should().NotBeNull();
-        config!.SelectedAlternativeId.Should().Be(portuguese.Id);
-    }
-
-    [Fact]
-    public void GetUserLanguage_UnknownUser_ShouldReturnNull()
-    {
-        // Arrange - user never assigned
-        var unknownUserId = Guid.NewGuid();
-
-        // Act
-        var config = _userLanguageService.GetUserLanguage(unknownUserId);
-
-        // Assert
-        config.Should().BeNull("unknown users have no assignment");
-    }
-
-    [Fact]
-    public async Task GetUserLanguageAlternative_ShouldReturnFullAlternativeObject()
-    {
-        // Scenario: We should be able to get the full alternative details
-        // for a user's assignment (not just the ID)
-
-        // Arrange
-        var userId = Guid.NewGuid();
-        CreateMockUser(userId);
-        var portuguese = _context.AddLanguageAlternative("Portuguese", "pt-BR");
-        await _userLanguageService.AssignLanguageAsync(userId, portuguese.Id, "admin", true, true);
-
-        // Act
-        var alternative = _userLanguageService.GetUserLanguageAlternative(userId);
-
-        // Assert
-        alternative.Should().NotBeNull();
-        alternative!.Name.Should().Be("Portuguese");
-        alternative.LanguageCode.Should().Be("pt-BR");
+        var userConfig = _context.Configuration.UserLanguages.FirstOrDefault(u => u.UserId == userId);
+        userConfig.Should().NotBeNull();
+        userConfig!.ManuallySet.Should().BeFalse("automatic assignments should not be marked as manual");
     }
 
     #endregion
@@ -374,7 +321,8 @@ public class PluginManagedBehaviorTests : IDisposable
             isPluginManaged: true);
 
         // Assert
-        var config = _userLanguageService.GetUserLanguage(userId);
+        var config = _context.Configuration.UserLanguages.FirstOrDefault(u => u.UserId == userId);
+        config.Should().NotBeNull();
         config!.IsPluginManaged.Should().BeTrue();
     }
 
@@ -395,7 +343,8 @@ public class PluginManagedBehaviorTests : IDisposable
             isPluginManaged: false); // Has language but NOT managed
 
         // Assert
-        var config = _userLanguageService.GetUserLanguage(userId);
+        var config = _context.Configuration.UserLanguages.FirstOrDefault(u => u.UserId == userId);
+        config.Should().NotBeNull();
         config!.SelectedAlternativeId.Should().Be(portuguese.Id);
         config.IsPluginManaged.Should().BeFalse();
     }

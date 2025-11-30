@@ -95,12 +95,6 @@ public partial class DebugReportService : IDebugReportService
     }
 
     /// <inheritdoc />
-    public void LogToBuffer(string level, string message, string? exception = null)
-    {
-        LogToBufferStatic(level, message, exception);
-    }
-
-    /// <inheritdoc />
     public async Task<DebugReport> GenerateReportAsync(DebugReportOptions? options = null, CancellationToken cancellationToken = default)
     {
         options ??= new DebugReportOptions();

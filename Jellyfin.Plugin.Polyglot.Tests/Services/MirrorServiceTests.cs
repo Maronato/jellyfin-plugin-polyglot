@@ -178,7 +178,6 @@ public class MirrorServiceFileOperationTests : IDisposable
         dest.AutoManageNewUsers = source.AutoManageNewUsers;
         dest.DefaultLanguageAlternativeId = source.DefaultLanguageAlternativeId;
         dest.SyncMirrorsAfterLibraryScan = source.SyncMirrorsAfterLibraryScan;
-        dest.UserReconciliationTime = source.UserReconciliationTime;
         dest.ExcludedExtensions = source.ExcludedExtensions;
         dest.ExcludedDirectories = source.ExcludedDirectories;
         dest.LanguageAlternatives = source.LanguageAlternatives;

@@ -195,13 +195,13 @@ public class DebugReportServiceTests : IDisposable
 
     #endregion
 
-    #region LogToBuffer
+    #region LogToBufferStatic
 
     [Fact]
-    public async Task LogToBuffer_AddsEntryToBuffer()
+    public async Task LogToBufferStatic_AddsEntryToBuffer()
     {
         // Arrange & Act
-        _service.LogToBuffer("Information", "Test message");
+        DebugReportService.LogToBufferStatic("Information", "Test message");
 
         // Assert
         var report = await _service.GenerateReportAsync();
@@ -209,7 +209,7 @@ public class DebugReportServiceTests : IDisposable
     }
 
     [Fact]
-    public async Task LogToBuffer_WithEntities_SanitizesPathsBasedOnPrivacySettings()
+    public async Task LogToBufferStatic_WithEntities_SanitizesPathsBasedOnPrivacySettings()
     {
         // Arrange - log with a path entity
         var pathEntity = new LogPath("/home/user/media/file.mkv", "file");
@@ -234,10 +234,10 @@ public class DebugReportServiceTests : IDisposable
     }
 
     [Fact]
-    public async Task LogToBuffer_WithException_IncludesExceptionMessage()
+    public async Task LogToBufferStatic_WithException_IncludesExceptionMessage()
     {
         // Arrange & Act
-        _service.LogToBuffer("Error", "Operation failed", "NullReferenceException: Object reference not set");
+        DebugReportService.LogToBufferStatic("Error", "Operation failed", "NullReferenceException: Object reference not set");
 
         // Assert
         var report = await _service.GenerateReportAsync();

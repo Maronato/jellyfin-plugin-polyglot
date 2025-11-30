@@ -142,30 +142,4 @@ public static class FileClassifier
 
         return false;
     }
-
-    /// <summary>
-    /// Gets the list of video file extensions that are commonly used.
-    /// </summary>
-    public static IReadOnlySet<string> VideoExtensions => new HashSet<string>(StringComparer.OrdinalIgnoreCase)
-    {
-        ".mkv", ".mp4", ".avi", ".m4v", ".wmv", ".mov", ".ts", ".m2ts",
-        ".flv", ".webm", ".mpg", ".mpeg", ".vob", ".3gp", ".divx", ".xvid"
-    };
-
-    /// <summary>
-    /// Gets the list of audio file extensions that are commonly used.
-    /// </summary>
-    public static IReadOnlySet<string> AudioExtensions => new HashSet<string>(StringComparer.OrdinalIgnoreCase)
-    {
-        ".mp3", ".aac", ".ac3", ".dts", ".flac", ".m4a", ".ogg",
-        ".wav", ".wma", ".opus", ".ape", ".mka"
-    };
-
-    /// <summary>
-    /// Gets the list of subtitle file extensions.
-    /// </summary>
-    public static IReadOnlySet<string> SubtitleExtensions => new HashSet<string>(StringComparer.OrdinalIgnoreCase)
-    {
-        ".srt", ".ass", ".ssa", ".sub", ".idx", ".vtt", ".sup", ".pgs"
-    };
 }

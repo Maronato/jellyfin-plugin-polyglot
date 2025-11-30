@@ -4,6 +4,7 @@ using System.Threading;
 using System.Threading.Tasks;
 using Jellyfin.Plugin.Polyglot.Helpers;
 using Jellyfin.Plugin.Polyglot.Models;
+using static Jellyfin.Plugin.Polyglot.Helpers.ProgressExtensions;
 using Jellyfin.Plugin.Polyglot.Services;
 using MediaBrowser.Controller.Library;
 using Microsoft.Extensions.Logging;
@@ -79,7 +80,7 @@ public class MirrorPostScanTask : ILibraryPostScanTask
             var altProgress = new Progress<double>(p =>
             {
                 var overallProgress = ((completedAlternatives * 100.0) + p) / totalAlternatives;
-                SafeReportProgress(progress, overallProgress);
+                progress.SafeReport(overallProgress);
             });
 
             try
@@ -105,22 +106,7 @@ public class MirrorPostScanTask : ILibraryPostScanTask
             completedAlternatives++;
         }
 
-        SafeReportProgress(progress, 100);
+        progress.SafeReport(100);
         _logger.PolyglotInfo("MirrorPostScanTask: Completed");
-    }
-
-    /// <summary>
-    /// Safely reports progress without throwing if the callback fails.
-    /// </summary>
-    private void SafeReportProgress(IProgress<double> progress, double value)
-    {
-        try
-        {
-            progress.Report(value);
-        }
-        catch (Exception ex)
-        {
-            _logger.PolyglotDebug("MirrorPostScanTask: Progress callback failed: {0}", ex.Message);
-        }
     }
 }

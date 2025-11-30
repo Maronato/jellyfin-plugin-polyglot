@@ -47,9 +47,4 @@ public class LanguageAlternative
     /// Gets or sets when this alternative was created.
     /// </summary>
     public DateTime CreatedAt { get; set; } = DateTime.UtcNow;
-
-    /// <summary>
-    /// Gets or sets when this alternative was last modified.
-    /// </summary>
-    public DateTime? ModifiedAt { get; set; }
 }

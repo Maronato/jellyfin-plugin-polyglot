@@ -110,60 +110,6 @@ public class UserLanguageService : IUserLanguageService
     }
 
     /// <inheritdoc />
-    public UserLanguageConfig? GetUserLanguage(Guid userId)
-    {
-        return _configService.Read(c => c.UserLanguages.FirstOrDefault(u => u.UserId == userId));
-    }
-
-    /// <inheritdoc />
-    public LanguageAlternative? GetUserLanguageAlternative(Guid userId)
-    {
-        return _configService.Read(c =>
-        {
-            var userConfig = c.UserLanguages.FirstOrDefault(u => u.UserId == userId);
-            if (userConfig == null || !userConfig.SelectedAlternativeId.HasValue)
-            {
-                return null;
-            }
-
-            return c.LanguageAlternatives.FirstOrDefault(a => a.Id == userConfig.SelectedAlternativeId.Value);
-        });
-    }
-
-    /// <inheritdoc />
-    public async Task ClearLanguageAsync(Guid userId, CancellationToken cancellationToken = default)
-    {
-        _logger.PolyglotDebug("ClearLanguageAsync: Clearing language for user {0}",
-            _userManager.CreateLogUser(userId));
-
-        var user = _userManager.GetUserById(userId);
-        var userEntity = _userManager.CreateLogUser(userId, user?.Username);
-
-        var updated = _configService.Update(c =>
-        {
-            var userConfig = c.UserLanguages.FirstOrDefault(u => u.UserId == userId);
-            if (userConfig == null) return false;
-
-            userConfig.SelectedAlternativeId = null;
-            userConfig.SetAt = DateTime.UtcNow;
-            userConfig.SetBy = "admin";
-            return true;
-        });
-
-        if (updated)
-        {
-            _logger.PolyglotInfo("ClearLanguageAsync: Cleared language assignment for user {0}", userEntity);
-
-            // Update user's library access to show all libraries
-            await _libraryAccessService.UpdateUserLibraryAccessAsync(userId, cancellationToken).ConfigureAwait(false);
-        }
-        else
-        {
-            _logger.PolyglotDebug("ClearLanguageAsync: No language assignment found for user {0}", userEntity);
-        }
-    }
-
-    /// <inheritdoc />
     public IEnumerable<UserInfo> GetAllUsersWithLanguages()
     {
         var users = _userManager.Users;
@@ -197,12 +143,6 @@ public class UserLanguageService : IUserLanguageService
 
             yield return userInfo;
         }
-    }
-
-    /// <inheritdoc />
-    public bool IsManuallySet(Guid userId)
-    {
-        return _configService.Read(c => c.UserLanguages.FirstOrDefault(u => u.UserId == userId)?.ManuallySet ?? false);
     }
 
     /// <inheritdoc />
