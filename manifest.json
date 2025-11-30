@@ -10,6 +10,14 @@
     "repositoryUrl": "https://github.com/Maronato/jellyfin-plugin-polyglot",
     "versions": [
       {
+        "version": "0.8.11.0",
+        "changelog": "## What's Changed\n\n### 🔄 Refactoring\n- Enhance logging with structured log entities\n  - Updated logging calls across services and controllers to use structured log entities (`LogUser`, `LogMirror`, `LogAlternative`, etc.)\n  - Improved privacy by anonymizing sensitive data in log messages\n  - Refactored error handling and debug information to incorporate structured entities for better traceability\n  - Adjusted logging in event consumers and tasks to provide clearer context in log outputs\n\n**Full Changelog**: https://github.com/Maronato/jellyfin-plugin-polyglot/compare/v0.8.10...v0.8.11",
+        "targetAbi": "10.10.0.0",
+        "sourceUrl": "https://github.com/Maronato/jellyfin-plugin-polyglot/releases/download/v0.8.11/polyglot_0.8.11.0.zip",
+        "checksum": "8ac311c49fb01bfd7a6d672da7303ddc",
+        "timestamp": "2025-11-30T19:24:51Z"
+      },
+      {
         "version": "0.8.10.0",
         "changelog": "## What's Changed\n\n### 🔧 Improvements\n- Implement logging enhancements with privacy-aware entities\n  - Introduced `ILogEntity` interface and various implementations (`LogUser`, `LogLibrary`, `LogAlternative`, etc.) for structured logging\n  - Enhanced `PolyglotLogger` to handle entity rendering for both debug and information logs\n  - Sensitive data is now automatically anonymized in logs as needed\n\n### 🔄 Refactoring\n- Updated logging methods across services to utilize new log entities, improving consistency in log messages\n- Refactored existing logging calls in event consumers and services to incorporate the new logging structure, enhancing traceability and debugging capabilities\n\n**Full Changelog**: https://github.com/Maronato/jellyfin-plugin-polyglot/compare/v0.8.9...v0.8.10",
         "targetAbi": "10.10.0.0",
