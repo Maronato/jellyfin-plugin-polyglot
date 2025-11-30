@@ -10,6 +10,14 @@
     "repositoryUrl": "https://github.com/Maronato/jellyfin-plugin-polyglot",
     "versions": [
       {
+        "version": "0.8.13.0",
+        "changelog": "## What's Changed\n\n### ⚠️ Breaking Changes\n- Remove LDAP integration support\n  - Eliminated all references to LDAP integration, including related services, models, and configuration options\n  - User language assignment now focuses solely on automatic management for new users\n  - Updated documentation to reflect the removal of LDAP features\n\n### 🔄 Refactoring\n- Implement generic Read/Update pattern in ConfigurationService\n  - Replaced direct access methods with a generic `Read` and `Update` pattern for atomic configuration operations\n  - Enhanced thread safety and reduced stale reference issues\n  - Centralized configuration access logic for improved maintainability\n\n- Remove unused properties and methods\n  - Eliminated `UserReconciliationTime` property from PluginConfiguration\n  - Removed static properties for video, audio, and subtitle file extensions from FileClassifier\n  - Deleted unused `IsPathSafe` method from FileSystemHelper\n  - Cleaned up unused methods in `IDebugReportService` and `IUserLanguageService`\n\n### 🔧 Improvements\n- Introduced `ProgressExtensions` class for safe progress reporting with improved error handling\n\n### ✅ Testing\n- Updated tests to reflect changes in user language assignment logic and configuration serialization\n\n**Full Changelog**: https://github.com/Maronato/jellyfin-plugin-polyglot/compare/v0.8.12...v0.8.13",
+        "targetAbi": "10.10.0.0",
+        "sourceUrl": "https://github.com/Maronato/jellyfin-plugin-polyglot/releases/download/v0.8.13/polyglot_0.8.13.0.zip",
+        "checksum": "2a99b1fcdd17a4412c888a860ac962e5",
+        "timestamp": "2025-11-30T23:54:41Z"
+      },
+      {
         "version": "0.8.12.0",
         "changelog": "## What's Changed\n\n### 🔄 Refactoring\n- Streamline logging with LogEntityFactory\n  - Replaced direct instantiation of log entities with `LogEntityFactory` methods across services and controllers\n  - Enhanced code readability and maintainability through centralized entity creation\n  - Ensured consistent use of structured log entities for improved privacy and traceability\n  - Refactored error handling and debug information to utilize factory methods, ensuring sensitive data is anonymized\n\n**Full Changelog**: https://github.com/Maronato/jellyfin-plugin-polyglot/compare/v0.8.11...v0.8.12",
         "targetAbi": "10.10.0.0",
