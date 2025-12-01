@@ -6,7 +6,7 @@
     "description": "Serve your Jellyfin library in multiple languages without duplicating files. Creates language-specific mirror libraries using hardlinks, allowing different users to see different metadata languages. Supports automatic language assignment for new users.",
     "owner": "Maronato",
     "category": "General",
-    "imageUrl": "https://raw.githubusercontent.com/Maronato/jellyfin-plugin-polyglot/main/logo.png",
+    "imageUrl": "https://raw.githubusercontent.com/Maronato/jellyfin-plugin-polyglot/main/docs/logo.png",
     "repositoryUrl": "https://github.com/Maronato/jellyfin-plugin-polyglot",
     "versions": [
       {
