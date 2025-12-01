@@ -98,12 +98,14 @@
                         </div>
 
                         <div class="verticalSection">
-                            <button type="button" class="emby-collapse" id="advancedSettingsToggle">
-                                <span class="collapseTitle">Advanced Settings</span>
-                            </button>
-                            <div id="advancedSettingsContent" class="collapseContent" style="display: none;">
-                                <div style="margin-bottom: 2em;">
-                                    <h4 style="margin-bottom: 0.5em;">Language-Independent Content</h4>
+                            <div class="advancedSettingsCard">
+                                <button type="button" class="advancedSettingsHeader" id="advancedSettingsToggle">
+                                    <span class="collapseArrow"></span>
+                                    <span class="collapseTitle">Advanced Settings</span>
+                                </button>
+                                <div id="advancedSettingsContent" class="advancedSettingsBody" style="display: none;">
+                                    <div style="margin-bottom: 2em;">
+                                        <h4 style="margin-bottom: 0.5em;">Language-Independent Content</h4>
                                     <p class="fieldDescription" style="margin-bottom: 1em;">
                                         Some directories contain files that are the same across all languages. 
                                         Enable these options to sync their contents regardless of file type.
@@ -1363,25 +1365,34 @@
                 border-bottom: 3px solid transparent;
                 transition: border-color 0.2s ease, color 0.2s ease;
             }
-            .emby-collapse {
+            /* Advanced Settings Card */
+            .advancedSettingsCard {
+                background: rgba(255,255,255,0.03);
+                border: 1px solid rgba(255,255,255,0.1);
+                border-radius: 4px;
+                overflow: hidden;
+            }
+            .advancedSettingsHeader {
                 display: flex;
                 align-items: center;
                 width: 100%;
                 padding: 0.8em 1em;
-                background: rgba(255,255,255,0.05);
-                border: 1px solid rgba(255,255,255,0.1);
-                border-radius: 4px;
+                background: rgba(255,255,255,0.02);
+                border: none;
+                border-bottom: 1px solid transparent;
                 cursor: pointer;
                 text-align: left;
                 font-size: 1em;
                 color: inherit;
                 transition: background 0.2s ease;
             }
-            .emby-collapse:hover {
-                background: rgba(255,255,255,0.08);
+            .advancedSettingsHeader:hover {
+                background: rgba(255,255,255,0.05);
             }
-            .emby-collapse::before {
-                content: '';
+            .advancedSettingsHeader.expanded {
+                border-bottom: 1px solid rgba(255,255,255,0.08);
+            }
+            .collapseArrow {
                 display: inline-block;
                 width: 0;
                 height: 0;
@@ -1392,19 +1403,16 @@
                 transform: rotate(-90deg);
                 transition: transform 0.2s ease;
             }
-            .emby-collapse.expanded::before {
+            .advancedSettingsHeader.expanded .collapseArrow {
                 transform: rotate(0deg);
             }
             .collapseTitle {
                 font-weight: 500;
             }
-            .collapseContent {
-                border-left: 2px solid rgba(0,164,220,0.3);
-                margin-left: 0.5em;
-                margin-top: 1em;
-                padding: 1em 1.5em 1.5em 1.5em;
+            .advancedSettingsBody {
+                padding: 1.5em;
             }
-            .collapseContent textarea {
+            .advancedSettingsBody textarea {
                 min-height: 120px;
                 resize: vertical;
             }
