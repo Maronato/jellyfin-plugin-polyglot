@@ -1,4 +1,4 @@
-![Logo](./logo.png)
+![Logo](./docs/logo.png)
 
 # Polyglot
 
@@ -59,6 +59,8 @@ Download from [Releases](https://github.com/Maronato/jellyfin-plugin-polyglot/re
 
 ### 1. Create a Language Alternative
 
+<img src="./docs/languages.png" width="700" alt="Languages Tab">
+
 1. Go to **Dashboard → Plugins → Polyglot → Languages tab**
 2. Click the **+** button and fill in:
     - **Name**: Display name (e.g., "Spanish")
@@ -74,6 +76,8 @@ Download from [Releases](https://github.com/Maronato/jellyfin-plugin-polyglot/re
 4. The plugin creates hardlinks and a new Jellyfin library with your target language's metadata
 
 ### 3. Assign Users
+
+<img src="./docs/users.png" width="700" alt="Users Tab">
 
 1. Go to the **Users tab**
 2. For each user, select their language from the dropdown:
@@ -100,6 +104,8 @@ volumes:
 ```
 
 ## Settings
+
+<img src="./docs/settings.png" width="700" alt="Settings Tab">
 
 The **Settings tab** offers additional configuration:
 
