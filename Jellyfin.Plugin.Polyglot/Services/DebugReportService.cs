@@ -347,8 +347,9 @@ public partial class DebugReportService : IDebugReportService
         try
         {
             var users = _userManager.Users;
-            foreach (var user in users)
+            foreach (var rawUser in users)
             {
+                var user = new PolyglotUser(rawUser);
                 userLookup[user.Id] = user.Username;
             }
         }

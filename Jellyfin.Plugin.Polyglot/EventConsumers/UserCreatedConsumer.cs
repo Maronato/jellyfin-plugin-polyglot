@@ -37,7 +37,7 @@ public class UserCreatedConsumer : IEventConsumer<UserCreatedEventArgs>
     /// <inheritdoc />
     public async Task OnEvent(UserCreatedEventArgs eventArgs)
     {
-        var user = eventArgs.Argument;
+        var user = new PolyglotUser(eventArgs.Argument);
         var userEntity = new LogUser(user.Id, user.Username);
         _logger.PolyglotInfo("UserCreatedConsumer: User created: {0}", userEntity);
 

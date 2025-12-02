@@ -121,7 +121,7 @@ public static class LogEntityFactory
         }
 
         // Fetch from user manager
-        var user = userManager.GetUserById(userId);
+        var user = userManager.GetUserById(userId)?.ToPolyglotUser();
         if (user != null)
         {
             return new LogUser(userId, user.Username);

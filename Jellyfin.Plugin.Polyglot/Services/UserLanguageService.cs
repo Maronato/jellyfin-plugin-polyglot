@@ -46,7 +46,7 @@ public class UserLanguageService : IUserLanguageService
         _logger.PolyglotDebug("AssignLanguageAsync: Assigning language to user {0}",
             _userManager.CreateLogUser(userId));
 
-        var user = _userManager.GetUserById(userId);
+        var user = _userManager.GetUserById(userId)?.ToPolyglotUser();
         if (user == null)
         {
             throw new ArgumentException($"User {userId} not found", nameof(userId));
@@ -116,13 +116,14 @@ public class UserLanguageService : IUserLanguageService
         var (userLanguages, alternatives) = _configService.Read(c =>
             (c.UserLanguages.ToList(), c.LanguageAlternatives.ToList()));
 
-        foreach (var user in users)
+        foreach (var rawUser in users)
         {
+            var user = new PolyglotUser(rawUser);
             var userInfo = new UserInfo
             {
                 Id = user.Id,
                 Username = user.Username,
-                IsAdministrator = user.HasPermission(Jellyfin.Data.Enums.PermissionKind.IsAdministrator)
+                IsAdministrator = user.HasPermission(PolyglotPermissionKind.IsAdministrator)
             };
 
             var userConfig = userLanguages.FirstOrDefault(u => u.UserId == user.Id);

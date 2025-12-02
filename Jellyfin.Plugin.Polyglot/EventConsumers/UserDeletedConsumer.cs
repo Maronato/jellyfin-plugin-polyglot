@@ -30,7 +30,7 @@ public class UserDeletedConsumer : IEventConsumer<UserDeletedEventArgs>
     /// <inheritdoc />
     public Task OnEvent(UserDeletedEventArgs eventArgs)
     {
-        var user = eventArgs.Argument;
+        var user = new PolyglotUser(eventArgs.Argument);
         var userEntity = new LogUser(user.Id, user.Username);
         _logger.PolyglotInfo("UserDeletedConsumer: User deleted: {0}", userEntity);
 
