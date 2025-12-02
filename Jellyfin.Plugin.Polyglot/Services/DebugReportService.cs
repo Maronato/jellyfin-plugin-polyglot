@@ -26,7 +26,7 @@ public partial class DebugReportService : IDebugReportService
 {
     private readonly IApplicationHost _applicationHost;
     private readonly ILibraryManager _libraryManager;
-    private readonly IUserManager _userManager;
+    private readonly PolyglotUserManager _userManager;
     private readonly IConfigurationService _configService;
     private readonly ILogger<DebugReportService> _logger;
 
@@ -89,7 +89,7 @@ public partial class DebugReportService : IDebugReportService
     {
         _applicationHost = applicationHost;
         _libraryManager = libraryManager;
-        _userManager = userManager;
+        _userManager = userManager.ToPolyglot();
         _configService = configService;
         _logger = logger;
     }
@@ -346,10 +346,8 @@ public partial class DebugReportService : IDebugReportService
         var userLookup = new Dictionary<Guid, string>();
         try
         {
-            var users = _userManager.Users;
-            foreach (var rawUser in users)
+            foreach (var user in _userManager.GetUsers())
             {
-                var user = new PolyglotUser(rawUser);
                 userLookup[user.Id] = user.Username;
             }
         }

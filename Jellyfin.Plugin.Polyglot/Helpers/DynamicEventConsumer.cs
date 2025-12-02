@@ -157,4 +157,3 @@ internal sealed class DynamicEventConsumerImpl<T> : IEventConsumer<T>
         }
     }
 }
-

@@ -20,7 +20,7 @@ namespace Jellyfin.Plugin.Polyglot.Services;
 /// </summary>
 public class UserLanguageService : IUserLanguageService
 {
-    private readonly IUserManager _userManager;
+    private readonly PolyglotUserManager _userManager;
     private readonly ILibraryAccessService _libraryAccessService;
     private readonly IConfigurationService _configService;
     private readonly ILogger<UserLanguageService> _logger;
@@ -34,7 +34,7 @@ public class UserLanguageService : IUserLanguageService
         IConfigurationService configService,
         ILogger<UserLanguageService> logger)
     {
-        _userManager = userManager;
+        _userManager = userManager.ToPolyglot();
         _libraryAccessService = libraryAccessService;
         _configService = configService;
         _logger = logger;
@@ -46,7 +46,7 @@ public class UserLanguageService : IUserLanguageService
         _logger.PolyglotDebug("AssignLanguageAsync: Assigning language to user {0}",
             _userManager.CreateLogUser(userId));
 
-        var user = _userManager.GetUserById(userId)?.ToPolyglotUser();
+        var user = _userManager.GetUserById(userId);
         if (user == null)
         {
             throw new ArgumentException($"User {userId} not found", nameof(userId));
@@ -112,13 +112,12 @@ public class UserLanguageService : IUserLanguageService
     /// <inheritdoc />
     public IEnumerable<UserInfo> GetAllUsersWithLanguages()
     {
-        var users = _userManager.Users;
+        var users = _userManager.GetUsers();
         var (userLanguages, alternatives) = _configService.Read(c =>
             (c.UserLanguages.ToList(), c.LanguageAlternatives.ToList()));
 
-        foreach (var rawUser in users)
+        foreach (var user in users)
         {
-            var user = new PolyglotUser(rawUser);
             var userInfo = new UserInfo
             {
                 Id = user.Id,

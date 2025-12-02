@@ -40,7 +40,7 @@ public class PolyglotController : ControllerBase
     private readonly ILibraryAccessService _libraryAccessService;
     private readonly IDebugReportService _debugReportService;
     private readonly IConfigurationService _configService;
-    private readonly IUserManager _userManager;
+    private readonly PolyglotUserManager _userManager;
     private readonly ILocalizationManager _localizationManager;
     private readonly IServerConfigurationManager _serverConfigurationManager;
     private readonly ILogger<PolyglotController> _logger;
@@ -64,7 +64,7 @@ public class PolyglotController : ControllerBase
         _libraryAccessService = libraryAccessService;
         _debugReportService = debugReportService;
         _configService = configService;
-        _userManager = userManager;
+        _userManager = userManager.ToPolyglot();
         _localizationManager = localizationManager;
         _serverConfigurationManager = serverConfigurationManager;
         _logger = logger;

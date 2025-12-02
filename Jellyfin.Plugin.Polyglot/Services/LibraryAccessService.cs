@@ -20,7 +20,7 @@ namespace Jellyfin.Plugin.Polyglot.Services;
 /// </summary>
 public class LibraryAccessService : ILibraryAccessService
 {
-    private readonly IUserManager _userManager;
+    private readonly PolyglotUserManager _userManager;
     private readonly ILibraryManager _libraryManager;
     private readonly IConfigurationService _configService;
     private readonly ILogger<LibraryAccessService> _logger;
@@ -34,7 +34,7 @@ public class LibraryAccessService : ILibraryAccessService
         IConfigurationService configService,
         ILogger<LibraryAccessService> logger)
     {
-        _userManager = userManager;
+        _userManager = userManager.ToPolyglot();
         _libraryManager = libraryManager;
         _configService = configService;
         _logger = logger;
@@ -46,7 +46,7 @@ public class LibraryAccessService : ILibraryAccessService
         _logger.PolyglotDebug("UpdateUserLibraryAccessAsync: Starting for user {0}",
             _userManager.CreateLogUser(userId));
 
-        var user = _userManager.GetUserById(userId)?.ToPolyglotUser();
+        var user = _userManager.GetUserById(userId);
         if (user == null)
         {
             _logger.PolyglotWarning("UpdateUserLibraryAccessAsync: User {0} not found",
@@ -118,7 +118,7 @@ public class LibraryAccessService : ILibraryAccessService
         var libraryIds = finalLibraries.Select(g => g.ToString("N")).ToArray();
         user.SetPreference(PolyglotPreferenceKind.EnabledFolders, libraryIds);
 
-        await _userManager.UpdateUserAsync((dynamic)user.UnderlyingUser).ConfigureAwait(false);
+        await _userManager.UpdateUserAsync(user).ConfigureAwait(false);
 
         _logger.PolyglotDebug("UpdateUserLibraryAccessAsync: Completed for user {0}", userEntity);
     }
@@ -126,7 +126,7 @@ public class LibraryAccessService : ILibraryAccessService
     /// <inheritdoc />
     public async Task<bool> ReconcileUserAccessAsync(Guid userId, CancellationToken cancellationToken = default)
     {
-        var user = _userManager.GetUserById(userId)?.ToPolyglotUser();
+        var user = _userManager.GetUserById(userId);
         if (user == null)
         {
             return false;
@@ -367,13 +367,12 @@ public class LibraryAccessService : ILibraryAccessService
     {
         _logger.PolyglotDebug("EnableAllUsersAsync: Starting");
 
-        var allUsers = _userManager.Users.ToList();
+        var allUsers = _userManager.GetUsers().ToList();
         var enabledCount = 0;
 
-        foreach (var rawUser in allUsers)
+        foreach (var user in allUsers)
         {
             cancellationToken.ThrowIfCancellationRequested();
-            var user = new PolyglotUser(rawUser);
 
             try
             {
@@ -425,7 +424,7 @@ public class LibraryAccessService : ILibraryAccessService
         _logger.PolyglotDebug("DisableUserAsync: Disabling user {0}",
             _userManager.CreateLogUser(userId));
 
-        var user = _userManager.GetUserById(userId)?.ToPolyglotUser();
+        var user = _userManager.GetUserById(userId);
         if (user == null)
         {
             _logger.PolyglotWarning("DisableUserAsync: User {0} not found",
@@ -457,7 +456,7 @@ public class LibraryAccessService : ILibraryAccessService
         if (restoreFullAccess)
         {
             user.SetPermission(PolyglotPermissionKind.EnableAllFolders, true);
-            await _userManager.UpdateUserAsync((dynamic)user.UnderlyingUser).ConfigureAwait(false);
+            await _userManager.UpdateUserAsync(user).ConfigureAwait(false);
             _logger.PolyglotInfo("DisableUserAsync: Restored EnableAllFolders for user {0}", userEntity);
         }
 
@@ -470,7 +469,7 @@ public class LibraryAccessService : ILibraryAccessService
     /// <inheritdoc />
     public async Task AddLibrariesToUserAccessAsync(Guid userId, IEnumerable<Guid> libraryIds, CancellationToken cancellationToken = default)
     {
-        var user = _userManager.GetUserById(userId)?.ToPolyglotUser();
+        var user = _userManager.GetUserById(userId);
         if (user == null)
         {
             _logger.PolyglotWarning("AddLibrariesToUserAccessAsync: User {0} not found",
@@ -509,7 +508,7 @@ public class LibraryAccessService : ILibraryAccessService
         var libraryIdsArray = newAccess.Select(g => g.ToString("N")).ToArray();
         user.SetPreference(PolyglotPreferenceKind.EnabledFolders, libraryIdsArray);
 
-        await _userManager.UpdateUserAsync((dynamic)user.UnderlyingUser).ConfigureAwait(false);
+        await _userManager.UpdateUserAsync(user).ConfigureAwait(false);
 
         _logger.PolyglotInfo(
             "AddLibrariesToUserAccessAsync: Added {0} source libraries to user {1} (total: {2})",

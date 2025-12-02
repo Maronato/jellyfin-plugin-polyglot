@@ -105,12 +105,12 @@ public static class LogEntityFactory
     /// <summary>
     /// Creates a LogUser entity, fetching data from user manager if not provided.
     /// </summary>
-    /// <param name="userManager">The user manager to fetch data from.</param>
+    /// <param name="userManager">The PolyglotUserManager to fetch data from.</param>
     /// <param name="userId">The user ID.</param>
     /// <param name="username">Optional username. If null, fetched from user manager.</param>
     /// <returns>A LogUser entity with populated data.</returns>
     public static LogUser CreateLogUser(
-        this IUserManager userManager,
+        this PolyglotUserManager userManager,
         Guid userId,
         string? username = null)
     {
@@ -120,8 +120,8 @@ public static class LogEntityFactory
             return new LogUser(userId, username);
         }
 
-        // Fetch from user manager
-        var user = userManager.GetUserById(userId)?.ToPolyglotUser();
+        // Fetch from user manager using reflection-based access
+        var user = userManager.GetUserById(userId);
         if (user != null)
         {
             return new LogUser(userId, user.Username);
