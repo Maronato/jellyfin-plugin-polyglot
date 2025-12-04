@@ -746,12 +746,15 @@
                     var basePath = alternative.DestinationBasePath || '';
                     var libName = library.Name.toLowerCase().replace(/[^a-z0-9]/g, '-');
                     
-                    // Remove trailing slash from base path
-                    if (basePath.endsWith('/')) {
+                    // Detect path separator from basePath: if it contains backslash, use backslash (Windows)
+                    var pathSeparator = basePath.includes('\\') ? '\\' : '/';
+                    
+                    // Remove trailing separator from base path (handle both types)
+                    while (basePath.endsWith('/') || basePath.endsWith('\\')) {
                         basePath = basePath.slice(0, -1);
                     }
                     
-                    var suggestedPath = basePath + '/' + libName;
+                    var suggestedPath = basePath + pathSeparator + libName;
                     document.getElementById('mirrorTargetPath').value = suggestedPath;
                     
                     // Also suggest library name

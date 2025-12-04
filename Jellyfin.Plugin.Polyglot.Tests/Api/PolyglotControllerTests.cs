@@ -1231,6 +1231,203 @@ public class PolyglotControllerTests : IDisposable
     }
 
     #endregion
+
+    #region Path Normalization - Cross-platform path handling
+
+    [Fact]
+    public async Task AddLibraryMirror_RelativePath_ShouldReturn400()
+    {
+        // DESIRED BEHAVIOR: Relative paths should be rejected, not silently resolved
+        // relative to the current working directory. This matches CreateAlternative behavior.
+        
+        // Arrange
+        var alternative = _context.AddLanguageAlternative("Portuguese", "pt-BR");
+        var sourceLibraryId = Guid.NewGuid();
+        
+        var request = new AddLibraryMirrorRequest
+        {
+            SourceLibraryId = sourceLibraryId.ToString(),
+            TargetPath = "relative/path/movies", // Relative path - should be rejected
+            TargetLibraryName = "Test"
+        };
+
+        // Act
+        var result = await _controller.AddLibraryMirror(alternative.Id, request);
+
+        // Assert
+        result.Result.Should().BeOfType<BadRequestObjectResult>(
+            "relative paths should be rejected with 400 Bad Request");
+        var badRequest = (BadRequestObjectResult)result.Result!;
+        ((string)badRequest.Value!).Should().Contain("absolute",
+            "error message should indicate that an absolute path is required");
+    }
+
+    [Fact]
+    public async Task AddLibraryMirror_EmptyPath_ShouldReturn400()
+    {
+        // DESIRED BEHAVIOR: Empty or whitespace paths should be rejected.
+        
+        // Arrange
+        var alternative = _context.AddLanguageAlternative("Portuguese", "pt-BR");
+        var sourceLibraryId = Guid.NewGuid();
+        
+        var request = new AddLibraryMirrorRequest
+        {
+            SourceLibraryId = sourceLibraryId.ToString(),
+            TargetPath = "   ", // Whitespace only
+            TargetLibraryName = "Test"
+        };
+
+        // Act
+        var result = await _controller.AddLibraryMirror(alternative.Id, request);
+
+        // Assert
+        result.Result.Should().BeOfType<BadRequestObjectResult>(
+            "empty/whitespace paths should be rejected with 400 Bad Request");
+    }
+
+    [Fact]
+    public void CreateAlternative_NormalizesPathSeparators()
+    {
+        // DESIRED BEHAVIOR: Paths should be normalized to the OS-native format.
+        // Path.GetFullPath handles this automatically.
+        
+        // Arrange
+        var request = new CreateAlternativeRequest
+        {
+            Name = "Portuguese",
+            LanguageCode = "pt-BR",
+            DestinationBasePath = "/media/portuguese" // Unix-style path
+        };
+
+        // Act
+        var result = _controller.CreateAlternative(request);
+
+        // Assert
+        result.Result.Should().BeOfType<CreatedAtActionResult>();
+        var created = _context.Configuration.LanguageAlternatives[0];
+        
+        // Path.GetFullPath normalizes the path for the current OS
+        var expectedPath = Path.GetFullPath("/media/portuguese");
+        created.DestinationBasePath.Should().Be(expectedPath,
+            "path should be normalized via Path.GetFullPath");
+    }
+
+    [Fact]
+    public async Task AddLibraryMirror_NormalizesTargetPath()
+    {
+        // DESIRED BEHAVIOR: Target paths should be normalized to the OS-native format
+        // before validation and storage. This ensures consistent paths regardless of
+        // how the user enters them.
+        
+        // Arrange
+        var alternativeId = Guid.NewGuid();
+        var sourceLibraryId = Guid.NewGuid();
+
+        var alternative = new LanguageAlternative
+        {
+            Id = alternativeId,
+            Name = "Portuguese",
+            LanguageCode = "pt-BR",
+            DestinationBasePath = "/data/portuguese",
+            MirroredLibraries = new List<LibraryMirror>()
+        };
+        _context.Configuration.LanguageAlternatives.Add(alternative);
+
+        _mirrorServiceMock.Setup(s => s.GetJellyfinLibraries())
+            .Returns(new List<LibraryInfo>
+            {
+                new LibraryInfo { Id = sourceLibraryId, Name = "Movies", CollectionType = "movies" }
+            });
+
+        // The validation should receive the NORMALIZED path
+        var inputPath = "/data/portuguese/movies";
+        var normalizedPath = Path.GetFullPath(inputPath);
+        
+        _mirrorServiceMock.Setup(s => s.ValidateMirrorConfiguration(sourceLibraryId, normalizedPath))
+            .Returns((true, (string?)null));
+
+        var request = new AddLibraryMirrorRequest
+        {
+            SourceLibraryId = sourceLibraryId.ToString(),
+            TargetPath = inputPath,
+            TargetLibraryName = "Filmes"
+        };
+
+        // Act
+        var result = await _controller.AddLibraryMirror(alternativeId, request);
+
+        // Assert
+        result.Result.Should().BeOfType<CreatedResult>();
+        
+        var updatedAlternative = _context.Configuration.LanguageAlternatives.First(a => a.Id == alternativeId);
+        var mirror = updatedAlternative.MirroredLibraries[0];
+        mirror.TargetPath.Should().Be(normalizedPath,
+            "target path should be normalized via Path.GetFullPath");
+    }
+
+    [Fact]
+    public async Task AddLibraryMirror_ValidatesWithNormalizedPath()
+    {
+        // DESIRED BEHAVIOR: Path validation should use the normalized path,
+        // ensuring consistency between validation and storage.
+        
+        // Arrange
+        var alternativeId = Guid.NewGuid();
+        var sourceLibraryId = Guid.NewGuid();
+
+        var alternative = new LanguageAlternative
+        {
+            Id = alternativeId,
+            Name = "Portuguese",
+            LanguageCode = "pt-BR",
+            DestinationBasePath = "/data/portuguese",
+            MirroredLibraries = new List<LibraryMirror>()
+        };
+        _context.Configuration.LanguageAlternatives.Add(alternative);
+
+        _mirrorServiceMock.Setup(s => s.GetJellyfinLibraries())
+            .Returns(new List<LibraryInfo>
+            {
+                new LibraryInfo { Id = sourceLibraryId, Name = "Movies", CollectionType = "movies" }
+            });
+
+        var inputPath = "/data/portuguese/movies";
+        var normalizedPath = Path.GetFullPath(inputPath);
+
+        // Only accept the normalized path in validation
+        _mirrorServiceMock.Setup(s => s.ValidateMirrorConfiguration(sourceLibraryId, normalizedPath))
+            .Returns((true, (string?)null));
+        
+        // Reject the original unnormalized path (if different)
+        if (inputPath != normalizedPath)
+        {
+            _mirrorServiceMock.Setup(s => s.ValidateMirrorConfiguration(sourceLibraryId, inputPath))
+                .Returns((false, "Path not normalized"));
+        }
+
+        var request = new AddLibraryMirrorRequest
+        {
+            SourceLibraryId = sourceLibraryId.ToString(),
+            TargetPath = inputPath,
+            TargetLibraryName = "Filmes"
+        };
+
+        // Act
+        var result = await _controller.AddLibraryMirror(alternativeId, request);
+
+        // Assert - Should succeed because the controller normalizes before validation
+        result.Result.Should().BeOfType<CreatedResult>(
+            "controller should normalize path before calling ValidateMirrorConfiguration");
+        
+        // Verify validation was called with normalized path
+        _mirrorServiceMock.Verify(
+            s => s.ValidateMirrorConfiguration(sourceLibraryId, normalizedPath),
+            Times.Once,
+            "ValidateMirrorConfiguration should be called with the normalized path");
+    }
+
+    #endregion
 }
 
 /// <summary>

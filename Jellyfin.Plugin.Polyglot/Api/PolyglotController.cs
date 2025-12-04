@@ -271,6 +271,9 @@ public class PolyglotController : ControllerBase
             return BadRequest("Destination base path must be an absolute path");
         }
 
+        // Normalize path separators to the OS-native format
+        var normalizedBasePath = Path.GetFullPath(request.DestinationBasePath);
+
         var alternative = new LanguageAlternative
         {
             Id = Guid.NewGuid(),
@@ -278,7 +281,7 @@ public class PolyglotController : ControllerBase
             LanguageCode = request.LanguageCode,
             MetadataLanguage = request.MetadataLanguage ?? GetLanguageFromCode(request.LanguageCode),
             MetadataCountry = request.MetadataCountry ?? GetCountryFromCode(request.LanguageCode),
-            DestinationBasePath = request.DestinationBasePath,
+            DestinationBasePath = normalizedBasePath,
             CreatedAt = DateTime.UtcNow
         };
 
@@ -446,7 +449,20 @@ public class PolyglotController : ControllerBase
             return BadRequest("Invalid source library ID format");
         }
 
-        var validation = _mirrorService.ValidateMirrorConfiguration(sourceLibraryId, request.TargetPath);
+        if (string.IsNullOrWhiteSpace(request.TargetPath))
+        {
+            return BadRequest("Target path is required");
+        }
+
+        if (!Path.IsPathRooted(request.TargetPath))
+        {
+            return BadRequest("Target path must be an absolute path");
+        }
+
+        // Normalize path separators to the OS-native format early to ensure consistency
+        var normalizedTargetPath = Path.GetFullPath(request.TargetPath);
+
+        var validation = _mirrorService.ValidateMirrorConfiguration(sourceLibraryId, normalizedTargetPath);
         if (!validation.IsValid)
         {
             return BadRequest(validation.ErrorMessage);
@@ -471,7 +487,7 @@ public class PolyglotController : ControllerBase
             SourceLibraryId = sourceLibraryId,
             SourceLibraryName = sourceLibrary.Name,
             TargetLibraryName = request.TargetLibraryName ?? $"{sourceLibrary.Name} ({alternative.Name})",
-            TargetPath = request.TargetPath,
+            TargetPath = normalizedTargetPath,
             CollectionType = sourceLibrary.CollectionType,
             Status = SyncStatus.Pending
         };
